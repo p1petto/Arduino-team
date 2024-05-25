@@ -5,7 +5,19 @@
 
 #include "FastLED.h"
 CRGB leds[LED_NUM];
-int led_zigzag[LED_NUM];
+
+
+bool is_correct_boundaries(int x, int y){
+  if (x < 0 || x >= COL || y < 0 || y >= ROW)
+    return false;
+  return true;
+}
+
+bool is_correct_color(CRGB color){
+  if (color[0] < 0 || color[0] > 255 || color[1] < 0 || color[1] > 255 || color[2] < 0 || color[2] > 255)
+    return false;
+  return true;
+}
 
 // Лента зигзаг, если x нечетный, то счёт идет в обратную сторону
 int get_index(int x, int y){
@@ -27,9 +39,14 @@ int get_index(int x, int y){
 
 // Установка пикселя по координатам и цвету
 void set_pixel(int x, int y, CRGB color) {
-  int index = get_index(x, y);
-  leds[index] = color;
-  FastLED.show();
+  if (is_correct_boundaries(x, y) && is_correct_color(color)){
+    int index = get_index(x, y);
+    leds[index] = color;
+    FastLED.show();
+  }
+  else {
+    Serial.println("Incorrect coordinates or color");
+  }
 }
 
 
@@ -76,7 +93,7 @@ void loop() {
     Serial.println(b);
 
     CRGB color = CRGB(r, g, b);
-    
+
     set_pixel(x, y, color);
   }
 }
