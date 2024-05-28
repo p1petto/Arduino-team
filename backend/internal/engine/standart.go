@@ -11,10 +11,10 @@ type Engine interface {
 }
 
 type Color struct {
-	RGBL [4]int
+	RGBL [4]int `json:"RGBL"`
 }
 type Coords struct {
-	X, Y int
+	X, Y int `json:"Coords"`
 }
 
 // func (i *Input) UnmarshalJSON(b []byte) error {
@@ -47,8 +47,9 @@ func (s *StandartEngine) Input(payload []byte) (Message, error) {
 	err := json.Unmarshal(payload, &input)
 	if err != nil {
 		fmt.Printf("%+v", err)
+		return Message{}, fmt.Errorf("%+w", err)
 	}
-	fmt.Printf("%+v", input)
+	// fmt.Printf("%+v", input)
 	s.GameMatrix[input.Coords.Y][input.Coords.X] = input.Color
 
 	data, err := json.Marshal(s.GameMatrix)
@@ -57,7 +58,7 @@ func (s *StandartEngine) Input(payload []byte) (Message, error) {
 
 }
 
-func (s StandartEngine) CurStateMessage() (Message, error) {
+func (s *StandartEngine) CurStateMessage() (Message, error) {
 	data, err := json.Marshal(s.GameMatrix)
 
 	return Message{Payload: data}, err

@@ -133,6 +133,12 @@ func (h *Hub) CreateRoom(name string, engine engine.Engine) (*Room, error) {
 	return room, nil
 }
 func (h *Hub) CreateUser(login string, token string) (*Client, error) {
+	defer func() {
+		// recover from panic if one occurred. Set err to nil otherwise.
+		if recover() != nil {
+			fmt.Println("panic at the disco!")
+		}
+	}()
 	op := "server.hub.CreateUser"
 	// _, err := h.storage.SaveRoom(login, id)
 	// if err != nil {
@@ -159,7 +165,20 @@ func (h *Hub) GetRoom(id string) *Room {
 func (h *Hub) GetRoomList() map[string]*Room {
 	h.roomMutex.RLock()
 	defer h.roomMutex.RUnlock()
-	return h.rooms
+	copy := make(map[string]*Room)
+	for key, value := range h.rooms {
+		copy[key] = value
+	}
+	return copy
+}
+func (h *Hub) GetUserList() map[string]*Client {
+	h.usersMutex.RLock()
+	defer h.usersMutex.RUnlock()
+	copy := make(map[string]*Client)
+	for key, value := range h.freeUsers {
+		copy[key] = value
+	}
+	return copy
 }
 func (h *Hub) GetUser(token string) *Client {
 	h.usersMutex.RLock()

@@ -4,7 +4,6 @@ import (
 	"arduinoteam/internal/engine"
 	"arduinoteam/storage"
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
@@ -53,7 +52,7 @@ func (s *Server) handleApiKeyCreate(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 	}
 	s.log.Info("client connected", "name", login)
-	s.log.Debug("clients slice", "struct", fmt.Sprintf("%+v", s.hub.freeUsers))
+	// s.log.Debug("clients slice", "struct", fmt.Sprintf("%+v", s.hub.freeUsers))
 
 	w.Header().Set("Content-Type", "text/plain")
 	w.WriteHeader(http.StatusCreated)

@@ -30,7 +30,7 @@ func NewServer() *Server {
 		},
 	}
 	log := slog.New(
-		slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
+		slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}),
 	)
 	mux := chi.NewRouter()
 	storage := sqlite.NewStorage()
@@ -58,7 +58,7 @@ func (s *Server) CheckToken(token string) (*Client, error) {
 	if token == "" {
 		return v, fmt.Errorf("bad token")
 	}
-	for _, v = range s.hub.freeUsers {
+	for _, v = range s.hub.GetUserList() {
 		if v.apikey == token {
 			return v, nil
 		}
