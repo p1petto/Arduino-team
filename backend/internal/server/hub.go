@@ -133,19 +133,7 @@ func (h *Hub) CreateRoom(name string, engine engine.Engine) (*Room, error) {
 	return room, nil
 }
 func (h *Hub) CreateUser(login string, token string) (*Client, error) {
-	defer func() {
-		// recover from panic if one occurred. Set err to nil otherwise.
-		if recover() != nil {
-			fmt.Println("panic at the disco!")
-		}
-	}()
 	op := "server.hub.CreateUser"
-	// _, err := h.storage.SaveRoom(login, id)
-	// if err != nil {
-	// 	h.log.Error("failed to save user", slErr(err))
-
-	// 	return room, fmt.Errorf("%s: %w", op, err)
-	// }
 	var client *Client
 	h.usersMutex.Lock()
 	defer h.usersMutex.Unlock()
