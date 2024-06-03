@@ -1,6 +1,7 @@
 package server
 
 import (
+	"arduinoteam/internal/hub"
 	"arduinoteam/storage/sqlite"
 	"fmt"
 	"log"
@@ -15,7 +16,7 @@ import (
 type Server struct {
 	mux      *chi.Mux
 	upgrader websocket.Upgrader
-	hub      *Hub
+	hub      *hub.Hub
 	log      *slog.Logger
 	storage  *sqlite.Storage
 }
@@ -35,7 +36,7 @@ func NewServer() *Server {
 	mux := chi.NewRouter()
 	storage := sqlite.NewStorage()
 
-	hub := NewHub(storage, log)
+	hub := hub.NewHub(storage, log)
 	hub.Run()
 
 	server := &Server{upgrader: upgrader, hub: hub, log: log, storage: storage, mux: mux}
@@ -53,13 +54,13 @@ func (s *Server) Run(port string) {
 	log.Fatal(http.ListenAndServe(":"+port, s))
 }
 
-func (s *Server) CheckToken(token string) (*Client, error) {
-	var v *Client
+func (s *Server) CheckToken(token string) (*hub.Client, error) {
+	var v *hub.Client
 	if token == "" {
 		return v, fmt.Errorf("bad token")
 	}
 	for _, v = range s.hub.GetUserList() {
-		if v.apikey == token {
+		if v.Apikey == token {
 			return v, nil
 		}
 	}

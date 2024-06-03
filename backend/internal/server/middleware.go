@@ -1,6 +1,7 @@
 package server
 
 import (
+	"arduinoteam/internal/sl"
 	"context"
 	"net/http"
 	"strings"
@@ -26,7 +27,7 @@ func (s *Server) AuthMiddleware() func(http.Handler) http.Handler {
 			s.log.Debug("got auth token", "token", reqToken)
 			client, err := s.CheckToken(reqToken)
 			if err != nil {
-				s.log.Error(op+"bad token", slErr(err))
+				s.log.Error(op+"bad token", sl.Err(err))
 				http.Error(w, "Bad Token", http.StatusUnauthorized)
 				return
 			} else {

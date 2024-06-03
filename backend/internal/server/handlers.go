@@ -1,7 +1,8 @@
 package server
 
 import (
-	"arduinoteam/internal/engine"
+	"arduinoteam/internal/hub"
+	"arduinoteam/internal/sl"
 	"arduinoteam/storage"
 	"errors"
 	"net/http"
@@ -15,9 +16,8 @@ func (s *Server) handleRoomCreate(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	standartEngn := engine.NewStandartEngine(24, 12)
-	engn := &standartEngn
-	room, err := s.hub.CreateRoom(name, engn)
+
+	room, err := s.hub.CreateRoom(name)
 	if err != nil {
 		if errors.Is(err, storage.ErrRoomExists) {
 			w.WriteHeader(http.StatusConflict)
@@ -45,7 +45,7 @@ func (s *Server) handleApiKeyCreate(w http.ResponseWriter, r *http.Request) {
 	// NewClient(login, token)
 	_, err = s.hub.CreateUser(login, token)
 	if err != nil {
-		if errors.Is(err, ErrUserExists) {
+		if errors.Is(err, hub.ErrUserExists) {
 			w.WriteHeader(http.StatusConflict)
 			return
 		}
@@ -96,18 +96,18 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	client, ok := r.Context().Value("user").(*Client)
+	client, ok := r.Context().Value("user").(*hub.Client)
 	if !ok {
 		s.log.Error("Fail to type assertion client", "op", op)
 		return
 	}
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		s.log.Error("Failed to upgrade connection", slErr(err))
+		s.log.Error("Failed to upgrade connection", sl.Err(err))
 		return
 	}
 
-	client.conn = conn
+	client.SetConnection(conn)
 	s.hub.Register(client, room)
 
 	s.hub.ListenClient(client, room)

@@ -1,16 +1,16 @@
-package server
+package hub
 
 import "github.com/gorilla/websocket"
 
 type Client struct {
-	login       string
+	Login       string
+	Apikey      string
 	conn        *websocket.Conn
-	apikey      string
 	messageChan chan []byte
 }
 
 func NewClient(login string, apikey string) *Client {
-	return &Client{login: login, apikey: apikey, messageChan: make(chan []byte)}
+	return &Client{Login: login, Apikey: apikey, messageChan: make(chan []byte)}
 }
 
 func (c *Client) listen() {
@@ -21,6 +21,15 @@ func (c *Client) listen() {
 	}()
 }
 
+func (c *Client) close() {
+	close(c.messageChan)
+	c.conn.Close()
+}
+
 func (c *Client) write(message []byte) {
 	c.messageChan <- message
+}
+
+func (c *Client) SetConnection(conn *websocket.Conn) {
+	c.conn = conn
 }

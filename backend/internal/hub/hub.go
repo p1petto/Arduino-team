@@ -1,7 +1,8 @@
-package server
+package hub
 
 import (
 	"arduinoteam/internal/engine"
+	"arduinoteam/internal/sl"
 	"arduinoteam/storage/sqlite"
 	"errors"
 	"fmt"
@@ -29,6 +30,7 @@ type Hub struct {
 	registerChan   chan Instruction
 	unregisterChan chan Instruction
 	broadcastChan  chan Message
+	castChan       chan CastMessage
 	log            *slog.Logger
 	storage        *sqlite.Storage
 	rooms          map[string]*Room
@@ -47,6 +49,8 @@ func (h *Hub) Run() {
 				h.handleUnregister(instruction.client, instruction.room)
 			case message := <-h.broadcastChan:
 				h.handleBroadcast(message)
+			case message := <-h.castChan:
+				h.handleCast(message)
 			}
 		}
 	}()
@@ -62,6 +66,9 @@ func (h *Hub) Unregister(client *Client, room *Room) {
 func (h *Hub) Broadcast(message Message) {
 	h.broadcastChan <- message
 }
+func (h *Hub) Cast(message CastMessage) {
+	h.castChan <- message
+}
 func (h *Hub) handleRegister(client *Client, room *Room) {
 	room.clients = append(room.clients, client)
 	h.log.Debug("new user registered", "struct", fmt.Sprintf("%+v", room.clients))
@@ -74,8 +81,7 @@ func (h *Hub) handleUnregister(client *Client, room *Room) {
 			break
 		}
 	}
-
-	// client.close()
+	client.close()
 }
 
 func (h *Hub) handleBroadcast(message Message) {
@@ -87,6 +93,14 @@ func (h *Hub) handleBroadcast(message Message) {
 		// }
 	}
 }
+func (h *Hub) handleCast(message CastMessage) {
+	// encoded := message.Encode()
+	for _, client := range message.room.clients {
+		if client == message.Client {
+			client.write(message.payload)
+		}
+	}
+}
 
 func (h *Hub) ListenClient(client *Client, room *Room) {
 	for {
@@ -95,11 +109,12 @@ func (h *Hub) ListenClient(client *Client, room *Room) {
 			h.Unregister(client, room)
 			return
 		}
-		output, err := room.engine.Input(msg)
+		// room.engine.Input(CastMessage{Client: client, room: room, payload: msg})
+		response, err := room.engine.Input(msg)
 		if err != nil {
-			h.log.Error("error get engine output")
+			h.log.Error("Error getting engine responce", sl.Err(err))
 		}
-		h.Broadcast(Message{payload: output.Payload, room: room})
+		h.Broadcast(Message{payload: response, room: room})
 	}
 
 }
@@ -109,6 +124,7 @@ func NewHub(storage *sqlite.Storage, log *slog.Logger) *Hub {
 		registerChan:   make(chan Instruction),
 		unregisterChan: make(chan Instruction),
 		broadcastChan:  make(chan Message),
+		castChan:       make(chan CastMessage),
 		log:            log,
 		storage:        storage,
 		rooms:          make(map[string]*Room),
@@ -116,17 +132,20 @@ func NewHub(storage *sqlite.Storage, log *slog.Logger) *Hub {
 	}
 }
 
-func (h *Hub) CreateRoom(name string, engine engine.Engine) (*Room, error) {
+func (h *Hub) CreateRoom(name string) (*Room, error) {
 	op := "server.hub.CreateRoom"
 	var room *Room
 	id := generateID()
 	_, err := h.storage.SaveRoom(name, id)
 	if err != nil {
-		h.log.Error("failed to save user", slErr(err))
+		h.log.Error("failed to save user", sl.Err(err))
 
 		return room, fmt.Errorf("%s: %w", op, err)
 	}
-	room = &Room{ID: id, Name: name, engine: engine}
+	standartEngn := engine.NewStandartEngine(24, 12)
+	room = &Room{ID: id, Name: name, engine: standartEngn}
+	// room.engine.Run()
+
 	h.roomMutex.Lock()
 	defer h.roomMutex.Unlock()
 	h.rooms[id] = room
