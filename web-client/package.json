@@ -6,11 +6,13 @@
   "scripts": {
     "dev": "vite",
     "build": "run-p type-check \"build-only {@}\" --",
+    "watch:tailwind": "npx tailwindcss -i ./src/assets/main.css -o ./src/assets/output.css --watch",
     "preview": "vite preview",
     "build-only": "vite build",
     "type-check": "vue-tsc --build --force"
   },
   "dependencies": {
+    "@heroicons/vue": "^2.1.3",
     "vue": "^3.4.21"
   },
   "devDependencies": {

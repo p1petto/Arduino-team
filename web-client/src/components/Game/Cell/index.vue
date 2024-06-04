@@ -1,16 +1,15 @@
 <script setup lang="ts">
-import type { ICell } from "./types.ts";
+import type { ICell } from "./index";
 
-interface ICellProps {
-  data: ICell;
-}
+const props = withDefaults(defineProps<ICell>(), {
+  color: 'white'
+});
 
-const props = defineProps<ICellProps>();
 </script>
 
 <template>
   <div
-    class="border hover:border-black"
-    :style="{ backgroundColor: props.data.color }"
+    class="border hover:border-black size-10"
+    :style="{ backgroundColor: props.color }"
   ></div>
 </template>

@@ -1,44 +1,85 @@
 <script setup lang="ts">
+import { Cell, type ICell } from "@/components/Game/Cell/index";
+import { Button, Navbar, Tooltip } from "@/components/UI/index";
+
+import {
+  ArrowPathIcon,
+  PaintBrushIcon,
+  UserIcon,
+} from "@heroicons/vue/24/outline";
 import { ref } from "vue";
-import Navbar from "@/components/UI/Navbar.vue";
-import Cell from "@/components/Game/Cell/index.vue";
-import type { ICell } from "@/components/Game/Cell/types.ts";
 
 const cells = ref<ICell[]>([]);
-// const currentColor = ref(Paint);
+const pallete = ["red", "blue", "green", "white"];
+const currentColor = ref(0);
 
 for (let i = 0; i < 24 * 12; i++) {
-  cells.value.push({
-    color: "white",
-  });
+  cells.value.push({});
 }
 
-const colorizeCell = (idx: number) => {
-  cells.value[idx].color = "red";
+const initGame = () => {
+  cells.value.forEach((c) => (c.color = "white"));
 };
+
+const colorizeCell = (idx: number) => {
+  cells.value[idx].color = pallete[currentColor.value];
+};
+
+const selectColor = (idx: number) => {
+  currentColor.value = idx;
+  colorPickerPanelVisible.value = false;
+};
+
+const colorPickerPanelVisible = ref(false);
 </script>
 
 <template>
-  <div class="flex flex-col h-screen w-screen">
-    <Navbar>
-      <a href="#">Навбар</a>
+  <div class="flex flex-col h-screen w-screen bg-[#fafafa]">
+    <Navbar class="flex flex-row justify-between">
+      <div class="m-auto font-bold">Текущая игра</div>
+      <Button>
+        <UserIcon class="size-6 text-slate-500" />
+      </Button>
     </Navbar>
 
     <div class="flex flex-grow">
       <!-- Панель с инструментами -->
-      <div class="w-16"></div>
+      <div class="flex flex-col justify-between p-2 bg-white shadow">
+        <div>
+          <Button
+            :style="{ borderBottom: `3px solid ${pallete[currentColor]}` }"
+            @click="colorPickerPanelVisible = !colorPickerPanelVisible"
+          >
+            <PaintBrushIcon class="size-6 text-slate-500" />
+          </Button>
+
+          <Tooltip v-if="colorPickerPanelVisible">
+            <template #header>Выбрать цвет</template>
+            <div class="grid grid-cols-4">
+              <div
+                class="rounded size-6 border transition-all hover:shadow hover:scale-110"
+                :style="{ backgroundColor: color }"
+                @click="selectColor(idx)"
+                v-for="(color, idx) in pallete"
+              ></div>
+            </div>
+          </Tooltip>
+        </div>
+
+        <Button @click="initGame()">
+          <ArrowPathIcon class="size-6 text-slate-500" />
+        </Button>
+      </div>
 
       <!-- Игровая сетка -->
-      <div class="grid grid-rows-24 grid-cols-12 grid-flow-row h-full w-full">
+      <div class="grid grid-rows-12 grid-cols-24 grid-flow-col h-fit m-auto">
         <Cell
-          :data="cell"
+          :color="color"
           :key="idx"
           @click="colorizeCell(idx)"
-          v-for="(cell, idx) in cells"
+          v-for="({ color }, idx) in cells"
         />
       </div>
     </div>
   </div>
 </template>
-
-<style scoped></style>
