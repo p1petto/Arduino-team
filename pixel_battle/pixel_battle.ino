@@ -1,3 +1,5 @@
+#include "wifi.h"
+
 #define LED_PIN D5
 #define LED_NUM 288
 #define COL 24
@@ -5,6 +7,9 @@
 
 #include "FastLED.h"
 CRGB leds[LED_NUM];
+
+WiFiManager wifiManager;
+
 
 
 bool is_correct_boundaries(int x, int y){
@@ -61,8 +66,12 @@ void setup() {
     leds[i] = CRGB::Black;
   }
   FastLED.show();
-  
-  
+
+  //first parameter is name of access point, second is the password
+  wifiManager.autoConnect("AP-NAME2");
+
+  server.begin();
+
 }
 
 void loop() {
