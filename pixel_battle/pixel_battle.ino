@@ -11,31 +11,30 @@ CRGB leds[LED_NUM];
 WiFiManager wifiManager;
 
 
-bool is_correct_boundaries(int x, int y){
+bool is_correct_boundaries(int x, int y) {
   if (x < 0 || x >= COL || y < 0 || y >= ROW)
     return false;
   return true;
 }
 
-bool is_correct_color(CRGB color){
+bool is_correct_color(CRGB color) {
   if (color[0] < 0 || color[0] > 255 || color[1] < 0 || color[1] > 255 || color[2] < 0 || color[2] > 255)
     return false;
   return true;
 }
 
 // Лента зигзаг, если x нечетный, то счёт идет в обратную сторону
-int get_index(int x, int y){
+int get_index(int x, int y) {
   int index = 0;
-  
+
   for (int col = 0; col < x; col++) {
     for (int row = 0; row < ROW; row++) {
       index++;
     }
   }
-  if (x % 2 == 1){
+  if (x % 2 == 1) {
     index += ROW - y - 1;
-  }
-  else 
+  } else
     index += y;
   Serial.println(index);
   return index;
@@ -43,12 +42,11 @@ int get_index(int x, int y){
 
 // Установка пикселя по координатам и цвету
 void set_pixel(int x, int y, CRGB color) {
-  if (is_correct_boundaries(x, y) && is_correct_color(color)){
+  if (is_correct_boundaries(x, y) && is_correct_color(color)) {
     int index = get_index(x, y);
     leds[index] = color;
     FastLED.show();
-  }
-  else {
+  } else {
     Serial.println("Incorrect coordinates or color");
   }
 }
@@ -60,8 +58,8 @@ void setup() {
 
   FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, LED_NUM);
   FastLED.setBrightness(50);
-  
-// Очистка ленты вручную
+
+  // Очистка ленты вручную
   for (int i = 0; i < LED_NUM; i++) {
     leds[i] = CRGB::Black;
   }
@@ -75,14 +73,46 @@ void setup() {
   server.begin();
 }
 
-void serverLogic(){
+void serverLogic() {
   WiFiClient client = server.available();
 
   if (client) {
+    int row[] = { 0, 0, 0, 0, 0 };
+    String inputString = "";
+    int counter = 0;
+    Serial.println("New client");
     while (client.connected()) {
       while (client.available() > 0) {
         char c = client.read();
-        Serial.write(c);
+        if (c == '|') {
+          //   // stringComplete = true;
+          // Serial.println("yea!");
+          Serial.print("string: ");
+          Serial.println(inputString);
+          row[counter] = inputString.toInt();
+          inputString = "";
+          counter++;
+
+
+          Serial.print("counter: ");
+          Serial.println(counter);
+          if (counter == 5) {
+            inputString = "";
+            counter = 0;
+            for (int i = 0; i < 5; ++i) {
+              Serial.print(row[i]);
+              row[i] = 0;
+            }
+            Serial.println(" ");
+          }
+          continue;
+        }
+        inputString += c;
+
+
+
+        // Serial.print("char: ");
+        // Serial.println(c);
       }
       delay(10);
     }
@@ -94,18 +124,18 @@ void serverLogic(){
 
 void loop() {
   // Варианты использования
-  // set_pixel(0, 11, CRGB(15, 15, 15)); 
+  // set_pixel(0, 11, CRGB(15, 15, 15));
   // set_pixel(1, 5, CRGB::Red);
   serverLogic();
-  
+
   if (Serial.available() > 0) {
     Serial.println("_______________________");
-    int x = Serial.parseInt();  
-    int y = Serial.parseInt(); 
-    int r = Serial.parseInt();   
-    int g = Serial.parseInt();   
-    int b = Serial.parseInt();   
-    
+    int x = Serial.parseInt();
+    int y = Serial.parseInt();
+    int r = Serial.parseInt();
+    int g = Serial.parseInt();
+    int b = Serial.parseInt();
+
     while (Serial.available() > 0) {
       Serial.read();
     }
@@ -125,4 +155,3 @@ void loop() {
     set_pixel(x, y, color);
   }
 }
-

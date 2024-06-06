@@ -123,7 +123,7 @@ func (h *Hub) ListenClient(client *Client, room *Room) {
 			h.log.Error("Error getting engine responce", sl.Err(err))
 		}
 
-		room.esp_chan <- fmt.Sprintf("%d|%d|%d|%d|%d", input.Coords.X, input.Coords.Y, input.RGB[0], input.RGB[1], input.RGB[2])
+		room.esp_chan <- fmt.Sprintf("%d|%d|%d|%d|%d|", input.Coords.X, input.Coords.Y, input.RGB[0], input.RGB[1], input.RGB[2])
 
 		data, err := json.Marshal(response)
 		if err != nil {
@@ -159,7 +159,7 @@ func (h *Hub) CreateRoom(name string, esp_ip string) (*Room, error) {
 	}
 	standartEngn := engine.NewStandartEngine(24, 12)
 	room = &Room{ID: id, Name: name, Ip: esp_ip, Status: "Pending", engine: standartEngn, esp_chan: make(chan string)}
-	room.Run()
+	go room.Run()
 	// room.engine.Run()
 
 	h.roomMutex.Lock()

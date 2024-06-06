@@ -96,6 +96,13 @@ func (s *Server) handleRoomListGet(w http.ResponseWriter, r *http.Request) {
 	encode(w, r, 200, room)
 }
 
+func (s *Server) handleOptions(w http.ResponseWriter, r *http.Request) {
+	s.setCORSPolicy(w)
+	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+	w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 	op := "handlers.handleWS"
 	roomID := chi.URLParam(r, "room")
