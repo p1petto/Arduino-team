@@ -16,7 +16,7 @@ type Storage struct {
 }
 
 func NewStorage() *Storage {
-	db, err := sql.Open("sqlite3", "store.db")
+	db, err := sql.Open("sqlite3", "database/store.db")
 	if err != nil {
 		log.Fatal(err)
 	}

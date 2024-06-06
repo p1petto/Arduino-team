@@ -8,3 +8,5 @@ services:
       dockerfile: Dockerfile
     ports:
       - "1090:1090"
+    volumes:
+      - "./database:/build/database"
