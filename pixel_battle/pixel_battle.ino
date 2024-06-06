@@ -11,7 +11,6 @@ CRGB leds[LED_NUM];
 WiFiManager wifiManager;
 
 
-
 bool is_correct_boundaries(int x, int y){
   if (x < 0 || x >= COL || y < 0 || y >= ROW)
     return false;
@@ -57,6 +56,7 @@ void set_pixel(int x, int y, CRGB color) {
 
 void setup() {
   Serial.begin(9600);
+  Serial.println("Starting...");
 
   FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, LED_NUM);
   FastLED.setBrightness(50);
@@ -67,18 +67,37 @@ void setup() {
   }
   FastLED.show();
 
+  Serial.println("Start WifiManager");
   //first parameter is name of access point, second is the password
   wifiManager.autoConnect("AP-NAME2");
 
+  Serial.println("Start server");
   server.begin();
+}
 
+void serverLogic(){
+  WiFiClient client = server.available();
+
+  if (client) {
+    while (client.connected()) {
+      while (client.available() > 0) {
+        char c = client.read();
+        Serial.write(c);
+      }
+      delay(10);
+    }
+
+    client.stop();
+    Serial.println("Client disconnected");
+  }
 }
 
 void loop() {
   // Варианты использования
   // set_pixel(0, 11, CRGB(15, 15, 15)); 
   // set_pixel(1, 5, CRGB::Red);
-
+  serverLogic();
+  
   if (Serial.available() > 0) {
     Serial.println("_______________________");
     int x = Serial.parseInt();  
