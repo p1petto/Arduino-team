@@ -159,7 +159,7 @@ func (h *Hub) CreateRoom(name string, esp_ip string) (*Room, error) {
 	}
 	standartEngn := engine.NewStandartEngine(24, 12)
 	room = &Room{ID: id, Name: name, Ip: esp_ip, Status: "Pending", engine: standartEngn, esp_chan: make(chan string)}
-	room.Run()
+	go room.Run()
 	// room.engine.Run()
 
 	h.roomMutex.Lock()
