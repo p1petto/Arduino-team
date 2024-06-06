@@ -3,7 +3,6 @@ package engine
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"sync"
 )
 
@@ -35,25 +34,25 @@ type Coords struct {
 	Y int
 }
 
-func (e *StandartEngine) Input(payload []byte) ([]byte, error) {
-	var input UserInput
-	// fmt.Printf("InputUser: %s", string(payload))
-	err := json.Unmarshal(payload, &input)
-	if err != nil {
-		fmt.Printf("%+v", err)
-		// return Message{}, fmt.Errorf("%+w", err)
-	}
+func (e *StandartEngine) Input(input UserInput) ([][][3]uint8, error) {
+	// var input UserInput
+	// // fmt.Printf("InputUser: %s", string(payload))
+	// err := json.Unmarshal(payload, &input)
+	// if err != nil {
+	// 	fmt.Printf("%+v", err)
+	// 	// return Message{}, fmt.Errorf("%+w", err)
+	// }
 
 	if !(input.Coords.Y >= 0 && input.Coords.Y < e.dy) {
 		if !(input.Coords.X >= 0 && input.Coords.X < e.dx) {
-			return []byte{}, ErrNotValidInput
+			return [][][3]uint8{}, ErrNotValidInput
 		}
 	}
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	e.GameMatrix[input.Coords.Y][input.Coords.X] = input.RGB
-	data, err := json.Marshal(e.GameMatrix)
-	return data, err
+	// data, err := json.Marshal(e.GameMatrix)
+	return e.GameMatrix, nil
 }
 
 func (e *StandartEngine) CurStateMessage() (Message, error) {

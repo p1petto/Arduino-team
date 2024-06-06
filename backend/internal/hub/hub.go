@@ -4,6 +4,7 @@ import (
 	"arduinoteam/internal/engine"
 	"arduinoteam/internal/sl"
 	"arduinoteam/storage/sqlite"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -109,12 +110,26 @@ func (h *Hub) ListenClient(client *Client, room *Room) {
 			h.Unregister(client, room)
 			return
 		}
+
+		var input engine.UserInput
+		// fmt.Printf("InputUser: %s", string(payload))
+		err = json.Unmarshal(msg, &input)
+		if err != nil {
+			fmt.Printf("%+v", err)
+		}
 		// room.engine.Input(CastMessage{Client: client, room: room, payload: msg})
-		response, err := room.engine.Input(msg)
+		response, err := room.engine.Input(input)
 		if err != nil {
 			h.log.Error("Error getting engine responce", sl.Err(err))
 		}
-		h.Broadcast(Message{payload: response, room: room})
+
+		room.esp_chan <- fmt.Sprintf("%d|%d|%d|%d|%d", input.Coords.X, input.Coords.Y, input.RGB[0], input.RGB[1], input.RGB[2])
+
+		data, err := json.Marshal(response)
+		if err != nil {
+			h.log.Error("Error marshaling in ListenClient", sl.Err(err))
+		}
+		h.Broadcast(Message{payload: data, room: room})
 	}
 
 }
@@ -132,7 +147,7 @@ func NewHub(storage *sqlite.Storage, log *slog.Logger) *Hub {
 	}
 }
 
-func (h *Hub) CreateRoom(name string) (*Room, error) {
+func (h *Hub) CreateRoom(name string, esp_ip string) (*Room, error) {
 	op := "server.hub.CreateRoom"
 	var room *Room
 	id := generateID()
@@ -143,7 +158,8 @@ func (h *Hub) CreateRoom(name string) (*Room, error) {
 		return room, fmt.Errorf("%s: %w", op, err)
 	}
 	standartEngn := engine.NewStandartEngine(24, 12)
-	room = &Room{ID: id, Name: name, engine: standartEngn}
+	room = &Room{ID: id, Name: name, Ip: esp_ip, Status: "Pending", engine: standartEngn, esp_chan: make(chan string)}
+	room.Run()
 	// room.engine.Run()
 
 	h.roomMutex.Lock()

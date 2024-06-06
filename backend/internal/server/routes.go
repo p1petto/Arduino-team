@@ -6,9 +6,9 @@ func (s *Server) configureRoutes() {
 	s.mux.Post("/login/{login}", s.handleApiKeyCreate)
 	s.mux.Group(func(r chi.Router) {
 		r.Use(s.AuthMiddleware())
-		r.Post("/room/{name}", s.handleRoomCreate)
-		r.Get("/room/{room}", s.handleRoomGet)
-		r.Get("/room", s.handleRoomListGet)
+		r.Post("/rooms", s.handleRoomCreate)
+		r.Get("/rooms/{room}", s.handleRoomGet)
+		r.Get("/rooms", s.handleRoomListGet)
 		r.Get("/ws/{room}", s.handleWS)
 	})
 }

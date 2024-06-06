@@ -11,13 +11,23 @@ import (
 )
 
 func (s *Server) handleRoomCreate(w http.ResponseWriter, r *http.Request) {
-	name := chi.URLParam(r, "name")
-	if name == "" {
+	// name := chi.URLParam(r, "name")
+	// if name == "" {
+	// 	w.WriteHeader(http.StatusBadRequest)
+	// 	return
+	// }
+	r.ParseForm()
+	var name string
+	if name = r.Form.Get("name"); name == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-
-	room, err := s.hub.CreateRoom(name)
+	var esp_ip string
+	if esp_ip = r.Form.Get("IP"); esp_ip == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	room, err := s.hub.CreateRoom(name, esp_ip)
 	if err != nil {
 		if errors.Is(err, storage.ErrRoomExists) {
 			w.WriteHeader(http.StatusConflict)
