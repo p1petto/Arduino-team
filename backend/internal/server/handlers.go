@@ -11,6 +11,7 @@ import (
 )
 
 func (s *Server) handleRoomCreate(w http.ResponseWriter, r *http.Request) {
+	s.setCORSPolicy(w)
 	// name := chi.URLParam(r, "name")
 	// if name == "" {
 	// 	w.WriteHeader(http.StatusBadRequest)
@@ -43,6 +44,7 @@ func (s *Server) handleRoomCreate(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(room.ID))
 }
 func (s *Server) handleApiKeyCreate(w http.ResponseWriter, r *http.Request) {
+	s.setCORSPolicy(w)
 	login := chi.URLParam(r, "login")
 	if login == "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -70,7 +72,7 @@ func (s *Server) handleApiKeyCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleRoomGet(w http.ResponseWriter, r *http.Request) {
-
+	s.setCORSPolicy(w)
 	roomID := chi.URLParam(r, "room")
 	if roomID == "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -87,6 +89,7 @@ func (s *Server) handleRoomGet(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleRoomListGet(w http.ResponseWriter, r *http.Request) {
+	s.setCORSPolicy(w)
 	room := s.hub.GetRoomList()
 	s.log.Debug("room list requested")
 

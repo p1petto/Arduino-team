@@ -45,6 +45,10 @@ func NewServer() *Server {
 	return server
 }
 
+func (s *Server) setCORSPolicy(w http.ResponseWriter) {
+	w.Header().Set("Access-Control-Allow-Origin", "*")
+}
+
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	s.mux.ServeHTTP(w, r)
 }
