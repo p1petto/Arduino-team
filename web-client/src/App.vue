@@ -13,7 +13,7 @@ const cells = ref<ICell[]>([]);
 const pallete = ["red", "blue", "green", "white"];
 const currentColor = ref(0);
 
-for (let i = 0; i < 24 * 12; i++) {
+for (let i = 0; i < 16 * 16; i++) {
   cells.value.push({});
 }
 
@@ -27,10 +27,10 @@ const colorizeCell = (idx: number) => {
 
 const selectColor = (idx: number) => {
   currentColor.value = idx;
-  colorPickerPanelVisible.value = false;
+  colorPickerVisible.value = false;
 };
 
-const colorPickerPanelVisible = ref(false);
+const colorPickerVisible = ref(false);
 </script>
 
 <template>
@@ -48,12 +48,12 @@ const colorPickerPanelVisible = ref(false);
         <div>
           <Button
             :style="{ borderBottom: `3px solid ${pallete[currentColor]}` }"
-            @click="colorPickerPanelVisible = !colorPickerPanelVisible"
+            @click="colorPickerVisible = !colorPickerVisible"
           >
             <PaintBrushIcon class="size-6 text-slate-500" />
           </Button>
 
-          <Tooltip v-if="colorPickerPanelVisible">
+          <Tooltip v-if="colorPickerVisible">
             <template #header>Выбрать цвет</template>
             <div class="grid grid-cols-4">
               <div
@@ -72,7 +72,7 @@ const colorPickerPanelVisible = ref(false);
       </div>
 
       <!-- Игровая сетка -->
-      <div class="grid grid-rows-12 grid-cols-24 grid-flow-col h-fit m-auto">
+      <div class="grid grid-cols-[repeat(16,_minmax(0,_1fr))] m-auto">
         <Cell
           :color="color"
           :key="idx"
