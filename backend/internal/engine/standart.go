@@ -1,65 +1,63 @@
 package engine
 
-import (
-	"encoding/json"
-	"fmt"
-)
+// import (
+// 	"encoding/json"
+// 	"fmt"
+// )
 
-type Engine interface {
-	CurStateMessage() (Message, error)
-	Input([]byte) (Message, error)
-}
+// type Coords struct {
+// 	X int
+// 	Y int
+// }
 
-type Color struct {
-	RGBL [4]int `json:"RGBL"`
-}
-type Coords struct {
-	X, Y int `json:"Coords"`
-}
+// type UserInput struct {
+// 	Coords
+// 	RGB [3]uint8 `json:"color"`
+// }
 
-// func (i *Input) UnmarshalJSON(b []byte) error {
+// func NewStandartEngine(dx int, dy int) *StandartEngine {
+// 	a := make([][][3]uint8, dy)
+// 	for i := range a {
+// 		a[i] = make([][3]uint8, dx)
+// 	}
+// 	return &StandartEngine{GameMatrix: a, inputChan: make(chan UserInput), dx: dx, dy: dy}
+// }
+
+// func (s *StandartEngine) Input(payload []byte) (Message, error) {
+// 	var input UserInput
+// 	// fmt.Printf("InputUser: %s", string(payload))
+// 	err := json.Unmarshal(payload, &input)
+// 	if err != nil {
+// 		fmt.Printf("%+v", err)
+// 		return Message{}, fmt.Errorf("%+w", err)
+// 	}
+// 	// fmt.Printf("%+v", input)
+// 	fmt.Println("input send to the channel")
+// 	s.inputChan <- input
+// 	data, err := json.Marshal(s.GameMatrix)
+// 	fmt.Println("message marshaled")
+// 	return Message{Payload: data}, err
 
 // }
 
-// func (i Input) MarshalJSON() ([]byte, error) {
-// 	return []byte(p), nil
+// func (s *StandartEngine) Run() {
+// 	go func() {
+// 		for input := range s.inputChan {
+// 			if input.Coords.Y >= 0 && input.Coords.Y < s.dy {
+// 				if input.Coords.X >= 0 && input.Coords.X < s.dx {
+// 					s.GameMatrix[input.Coords.Y][input.Coords.X] = input.RGB
+// 					fmt.Println("input processed")
+// 				}
+// 			}
+
+// 		}
+// 		fmt.Println("input stopped")
+// 	}()
+// 	fmt.Println("goroutine started")
 // }
 
-type StandartEngine struct {
-	GameMatrix [][]Color `json:"matrix"`
-}
+// func (s *StandartEngine) CurStateMessage() (Message, error) {
+// 	data, err := json.Marshal(s.GameMatrix)
 
-type Input struct {
-	Coords Coords `json:"coords"`
-	Color  Color  `json:"color"`
-}
-
-func NewStandartEngine(dx int, dy int) StandartEngine {
-	a := make([][]Color, dy)
-	for i := range a {
-		a[i] = make([]Color, dx)
-	}
-	return StandartEngine{GameMatrix: a}
-}
-
-func (s *StandartEngine) Input(payload []byte) (Message, error) {
-	var input Input
-	err := json.Unmarshal(payload, &input)
-	if err != nil {
-		fmt.Printf("%+v", err)
-		return Message{}, fmt.Errorf("%+w", err)
-	}
-	// fmt.Printf("%+v", input)
-	s.GameMatrix[input.Coords.Y][input.Coords.X] = input.Color
-
-	data, err := json.Marshal(s.GameMatrix)
-
-	return Message{Payload: data}, err
-
-}
-
-func (s *StandartEngine) CurStateMessage() (Message, error) {
-	data, err := json.Marshal(s.GameMatrix)
-
-	return Message{Payload: data}, err
-}
+// 	return Message{Payload: data}, err
+// }

@@ -1,7 +1,8 @@
 package server
 
 import (
-	"arduinoteam/internal/engine"
+	"arduinoteam/internal/hub"
+	"arduinoteam/internal/sl"
 	"arduinoteam/storage"
 	"errors"
 	"net/http"
@@ -10,14 +11,24 @@ import (
 )
 
 func (s *Server) handleRoomCreate(w http.ResponseWriter, r *http.Request) {
-	name := chi.URLParam(r, "name")
-	if name == "" {
+	s.setCORSPolicy(w)
+	// name := chi.URLParam(r, "name")
+	// if name == "" {
+	// 	w.WriteHeader(http.StatusBadRequest)
+	// 	return
+	// }
+	r.ParseForm()
+	var name string
+	if name = r.Form.Get("name"); name == "" {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	standartEngn := engine.NewStandartEngine(24, 12)
-	engn := &standartEngn
-	room, err := s.hub.CreateRoom(name, engn)
+	var esp_ip string
+	if esp_ip = r.Form.Get("IP"); esp_ip == "" {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	room, err := s.hub.CreateRoom(name, esp_ip)
 	if err != nil {
 		if errors.Is(err, storage.ErrRoomExists) {
 			w.WriteHeader(http.StatusConflict)
@@ -33,6 +44,7 @@ func (s *Server) handleRoomCreate(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(room.ID))
 }
 func (s *Server) handleApiKeyCreate(w http.ResponseWriter, r *http.Request) {
+	s.setCORSPolicy(w)
 	login := chi.URLParam(r, "login")
 	if login == "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -45,7 +57,7 @@ func (s *Server) handleApiKeyCreate(w http.ResponseWriter, r *http.Request) {
 	// NewClient(login, token)
 	_, err = s.hub.CreateUser(login, token)
 	if err != nil {
-		if errors.Is(err, ErrUserExists) {
+		if errors.Is(err, hub.ErrUserExists) {
 			w.WriteHeader(http.StatusConflict)
 			return
 		}
@@ -60,7 +72,7 @@ func (s *Server) handleApiKeyCreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleRoomGet(w http.ResponseWriter, r *http.Request) {
-
+	s.setCORSPolicy(w)
 	roomID := chi.URLParam(r, "room")
 	if roomID == "" {
 		w.WriteHeader(http.StatusBadRequest)
@@ -77,6 +89,7 @@ func (s *Server) handleRoomGet(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handleRoomListGet(w http.ResponseWriter, r *http.Request) {
+	s.setCORSPolicy(w)
 	room := s.hub.GetRoomList()
 	s.log.Debug("room list requested")
 
@@ -96,18 +109,18 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	client, ok := r.Context().Value("user").(*Client)
+	client, ok := r.Context().Value("user").(*hub.Client)
 	if !ok {
 		s.log.Error("Fail to type assertion client", "op", op)
 		return
 	}
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		s.log.Error("Failed to upgrade connection", slErr(err))
+		s.log.Error("Failed to upgrade connection", sl.Err(err))
 		return
 	}
 
-	client.conn = conn
+	client.SetConnection(conn)
 	s.hub.Register(client, room)
 
 	s.hub.ListenClient(client, room)

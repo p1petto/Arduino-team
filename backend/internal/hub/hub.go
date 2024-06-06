@@ -1,8 +1,10 @@
-package server
+package hub
 
 import (
 	"arduinoteam/internal/engine"
+	"arduinoteam/internal/sl"
 	"arduinoteam/storage/sqlite"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -29,6 +31,7 @@ type Hub struct {
 	registerChan   chan Instruction
 	unregisterChan chan Instruction
 	broadcastChan  chan Message
+	castChan       chan CastMessage
 	log            *slog.Logger
 	storage        *sqlite.Storage
 	rooms          map[string]*Room
@@ -47,6 +50,8 @@ func (h *Hub) Run() {
 				h.handleUnregister(instruction.client, instruction.room)
 			case message := <-h.broadcastChan:
 				h.handleBroadcast(message)
+			case message := <-h.castChan:
+				h.handleCast(message)
 			}
 		}
 	}()
@@ -62,6 +67,9 @@ func (h *Hub) Unregister(client *Client, room *Room) {
 func (h *Hub) Broadcast(message Message) {
 	h.broadcastChan <- message
 }
+func (h *Hub) Cast(message CastMessage) {
+	h.castChan <- message
+}
 func (h *Hub) handleRegister(client *Client, room *Room) {
 	room.clients = append(room.clients, client)
 	h.log.Debug("new user registered", "struct", fmt.Sprintf("%+v", room.clients))
@@ -74,8 +82,7 @@ func (h *Hub) handleUnregister(client *Client, room *Room) {
 			break
 		}
 	}
-
-	// client.close()
+	client.close()
 }
 
 func (h *Hub) handleBroadcast(message Message) {
@@ -87,6 +94,14 @@ func (h *Hub) handleBroadcast(message Message) {
 		// }
 	}
 }
+func (h *Hub) handleCast(message CastMessage) {
+	// encoded := message.Encode()
+	for _, client := range message.room.clients {
+		if client == message.Client {
+			client.write(message.payload)
+		}
+	}
+}
 
 func (h *Hub) ListenClient(client *Client, room *Room) {
 	for {
@@ -95,11 +110,26 @@ func (h *Hub) ListenClient(client *Client, room *Room) {
 			h.Unregister(client, room)
 			return
 		}
-		output, err := room.engine.Input(msg)
+
+		var input engine.UserInput
+		// fmt.Printf("InputUser: %s", string(payload))
+		err = json.Unmarshal(msg, &input)
 		if err != nil {
-			h.log.Error("error get engine output")
+			fmt.Printf("%+v", err)
 		}
-		h.Broadcast(Message{payload: output.Payload, room: room})
+		// room.engine.Input(CastMessage{Client: client, room: room, payload: msg})
+		response, err := room.engine.Input(input)
+		if err != nil {
+			h.log.Error("Error getting engine responce", sl.Err(err))
+		}
+
+		room.esp_chan <- fmt.Sprintf("%d|%d|%d|%d|%d", input.Coords.X, input.Coords.Y, input.RGB[0], input.RGB[1], input.RGB[2])
+
+		data, err := json.Marshal(response)
+		if err != nil {
+			h.log.Error("Error marshaling in ListenClient", sl.Err(err))
+		}
+		h.Broadcast(Message{payload: data, room: room})
 	}
 
 }
@@ -109,6 +139,7 @@ func NewHub(storage *sqlite.Storage, log *slog.Logger) *Hub {
 		registerChan:   make(chan Instruction),
 		unregisterChan: make(chan Instruction),
 		broadcastChan:  make(chan Message),
+		castChan:       make(chan CastMessage),
 		log:            log,
 		storage:        storage,
 		rooms:          make(map[string]*Room),
@@ -116,36 +147,28 @@ func NewHub(storage *sqlite.Storage, log *slog.Logger) *Hub {
 	}
 }
 
-func (h *Hub) CreateRoom(name string, engine engine.Engine) (*Room, error) {
+func (h *Hub) CreateRoom(name string, esp_ip string) (*Room, error) {
 	op := "server.hub.CreateRoom"
 	var room *Room
 	id := generateID()
 	_, err := h.storage.SaveRoom(name, id)
 	if err != nil {
-		h.log.Error("failed to save user", slErr(err))
+		h.log.Error("failed to save user", sl.Err(err))
 
 		return room, fmt.Errorf("%s: %w", op, err)
 	}
-	room = &Room{ID: id, Name: name, engine: engine}
+	standartEngn := engine.NewStandartEngine(24, 12)
+	room = &Room{ID: id, Name: name, Ip: esp_ip, Status: "Pending", engine: standartEngn, esp_chan: make(chan string)}
+	room.Run()
+	// room.engine.Run()
+
 	h.roomMutex.Lock()
 	defer h.roomMutex.Unlock()
 	h.rooms[id] = room
 	return room, nil
 }
 func (h *Hub) CreateUser(login string, token string) (*Client, error) {
-	defer func() {
-		// recover from panic if one occurred. Set err to nil otherwise.
-		if recover() != nil {
-			fmt.Println("panic at the disco!")
-		}
-	}()
 	op := "server.hub.CreateUser"
-	// _, err := h.storage.SaveRoom(login, id)
-	// if err != nil {
-	// 	h.log.Error("failed to save user", slErr(err))
-
-	// 	return room, fmt.Errorf("%s: %w", op, err)
-	// }
 	var client *Client
 	h.usersMutex.Lock()
 	defer h.usersMutex.Unlock()
