@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { Cell, type ICell } from "@/components/Game/Cell/index";
 import { Button, Navbar, Tooltip } from "@/components/UI/index";
+import { get, post } from "@/api/core/index";
 
 import {
   ArrowPathIcon,
   PaintBrushIcon,
   UserIcon,
+  CheckCircleIcon,
 } from "@heroicons/vue/24/outline";
 import { ref } from "vue";
 
@@ -31,15 +33,79 @@ const selectColor = (idx: number) => {
 };
 
 const colorPickerVisible = ref(false);
+const authPanelVisible = ref(false);
+const username = ref("");
+const token = ref("");
+
+(async function () {
+  const tokenCached = localStorage.getItem("token");
+
+  if (tokenCached) {
+    console.log(`Using token from data: ${tokenCached}`);
+    token.value = tokenCached;
+    return;
+  }
+})();
+
+function getHeaders() {
+  return { Authorization: `Bearer ${token.value}` };
+}
+
+// (async function () {
+//   const resp = await get("/rooms", getHeaders());
+//   console.log(resp);
+// })();
+
+async function createUser() {
+  const resp = await post(`/login/${username.value}`);
+
+  if (resp.status !== 201) {
+    console.error("Failed to login with user");
+    return;
+  }
+
+  const newToken = await resp.text();
+  localStorage.setItem("token", newToken);
+  token.value = newToken;
+
+  console.log(`Token for user ${username.value} created: ${newToken}`);
+}
+
+async function createGame() {
+  const resp = await fetch('http://localhost:1090/rooms', {
+    headers: getHeaders(),
+  });
+  // const resp = await post("/rooms", {}, getHeaders());
+  console.log(resp);
+}
 </script>
 
 <template>
   <div class="flex flex-col h-screen w-screen bg-[#fafafa]">
     <Navbar class="flex flex-row justify-between">
       <div class="m-auto font-bold">Текущая игра</div>
-      <Button>
+      <Button @click="authPanelVisible = !authPanelVisible">
         <UserIcon class="size-6 text-slate-500" />
       </Button>
+      <Tooltip v-if="authPanelVisible" class="right-4 top-12 left-auto">
+        <div class="flex flex-row gap-2">
+          <input
+            type="text"
+            v-model="username"
+            class="border-2 px-2 py-1 rounded"
+          />
+          <CheckCircleIcon
+            v-if="token !== ''"
+            class="size-6 m-auto text-green-500"
+          />
+        </div>
+        <div
+          class="rounded-lg bg-blue-500 text-white font-bold px-4 py-2 mt-2 w-fit hover:bg-blue-600 hover:cursor-pointer transition-colors"
+          @click="createUser()"
+        >
+          Войти
+        </div>
+      </Tooltip>
     </Navbar>
 
     <div class="flex flex-grow">
@@ -66,7 +132,7 @@ const colorPickerVisible = ref(false);
           </Tooltip>
         </div>
 
-        <Button @click="initGame()">
+        <Button @click="createGame()">
           <ArrowPathIcon class="size-6 text-slate-500" />
         </Button>
       </div>
