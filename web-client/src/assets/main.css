@@ -6,3 +6,19 @@ body {
     margin: 0;
     padding: 0;
 }
+
+button {
+    @apply rounded-lg bg-blue-500 text-white font-bold px-4 py-2 w-fit hover:bg-blue-600 hover:cursor-pointer transition-colors
+}
+
+input {
+    @apply border-2 px-2 py-1 rounded;
+}
+
+th {
+    @apply text-left border-b-2;
+}
+
+td {
+    @apply p-2;
+}

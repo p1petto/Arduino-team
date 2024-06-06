@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Cell, type ICell } from "@/components/Game/Cell/index";
-import { Button, Navbar, Tooltip } from "@/components/UI/index";
+import { IconButton, Navbar, Tooltip, Modal } from "@/components/UI/index";
 import { get, post } from "@/api/core/index";
 
 import {
@@ -8,6 +8,7 @@ import {
   PaintBrushIcon,
   UserIcon,
   CheckCircleIcon,
+  LinkIcon,
 } from "@heroicons/vue/24/outline";
 import { ref } from "vue";
 
@@ -18,10 +19,6 @@ const currentColor = ref(0);
 for (let i = 0; i < 16 * 16; i++) {
   cells.value.push({});
 }
-
-const initGame = () => {
-  cells.value.forEach((c) => (c.color = "white"));
-};
 
 const colorizeCell = (idx: number) => {
   cells.value[idx].color = pallete[currentColor.value];
@@ -34,6 +31,7 @@ const selectColor = (idx: number) => {
 
 const colorPickerVisible = ref(false);
 const authPanelVisible = ref(false);
+const gamesModalVisible = ref(false);
 const username = ref("");
 const token = ref("");
 
@@ -48,13 +46,11 @@ const token = ref("");
 })();
 
 function getHeaders() {
-  return { Authorization: `Bearer ${token.value}` };
+  return {
+    Authorization: `Bearer ${token.value}`,
+    "Content-Type": "application/x-www-form-urlencoded",
+  };
 }
-
-// (async function () {
-//   const resp = await get("/rooms", getHeaders());
-//   console.log(resp);
-// })();
 
 async function createUser() {
   const resp = await post(`/login/${username.value}`);
@@ -71,40 +67,87 @@ async function createUser() {
   console.log(`Token for user ${username.value} created: ${newToken}`);
 }
 
-async function createGame() {
-  const resp = await fetch('http://localhost:1090/rooms', {
+const currentGames = ref({});
+
+async function updateGames() {
+  const resp = await fetch("http://localhost:1090/rooms", {
     headers: getHeaders(),
   });
-  // const resp = await post("/rooms", {}, getHeaders());
+  currentGames.value = Object.values(await resp.json());
+}
+
+updateGames();
+
+async function createGame() {
+  const resp = await fetch("http://localhost:1090/rooms", {
+    method: "POST",
+    headers: getHeaders(),
+    body: new URLSearchParams({
+      name: "new-room",
+      IP: "127.0.0.1",
+    }),
+  });
   console.log(resp);
+}
+
+async function connectGame(ID: string) {
+  const _socket = new WebSocket(`ws://localhost:1090/ws/${ID}`);
+  console.log(ID);
 }
 </script>
 
 <template>
+  <Modal v-if="gamesModalVisible">
+    <h3 class="font-bold text-center">Подключиться к игре</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Имя</th>
+          <th>IPv4</th>
+          <th>Статус</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="{ ID, name, IP, status } of currentGames">
+          <td>{{ ID }}</td>
+          <td>{{ name }}</td>
+          <td>{{ IP }}</td>
+          <td>{{ status }}</td>
+          <td>
+            <button @click="connectGame(ID)">Подключиться</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="flex flex-row gap-2">
+      <button @click="createGame()">Создать</button>
+      <IconButton @click="updateGames()" :icon="ArrowPathIcon" />
+    </div>
+  </Modal>
+
   <div class="flex flex-col h-screen w-screen bg-[#fafafa]">
     <Navbar class="flex flex-row justify-between">
-      <div class="m-auto font-bold">Текущая игра</div>
-      <Button @click="authPanelVisible = !authPanelVisible">
-        <UserIcon class="size-6 text-slate-500" />
-      </Button>
+      <div class="m-auto font-bold flex gap-2">
+        <div class="m-auto">Текущая игра</div>
+        <IconButton
+          @click="gamesModalVisible = !gamesModalVisible"
+          :icon="LinkIcon"
+        />
+      </div>
+      <IconButton
+        @click="authPanelVisible = !authPanelVisible"
+        :icon="UserIcon"
+      />
       <Tooltip v-if="authPanelVisible" class="right-4 top-12 left-auto">
         <div class="flex flex-row gap-2">
-          <input
-            type="text"
-            v-model="username"
-            class="border-2 px-2 py-1 rounded"
-          />
-          <CheckCircleIcon
-            v-if="token !== ''"
-            class="size-6 m-auto text-green-500"
-          />
+          <input type="text" v-model="username" />
+          <CheckCircleIcon v-if="token" class="size-6 m-auto text-green-500" />
         </div>
-        <div
-          class="rounded-lg bg-blue-500 text-white font-bold px-4 py-2 mt-2 w-fit hover:bg-blue-600 hover:cursor-pointer transition-colors"
-          @click="createUser()"
-        >
-          Войти
-        </div>
+        <button @click="createUser()">Войти</button>
       </Tooltip>
     </Navbar>
 
@@ -112,12 +155,11 @@ async function createGame() {
       <!-- Панель с инструментами -->
       <div class="flex flex-col justify-between p-2 bg-white shadow">
         <div>
-          <Button
+          <IconButton
             :style="{ borderBottom: `3px solid ${pallete[currentColor]}` }"
+            :icon="PaintBrushIcon"
             @click="colorPickerVisible = !colorPickerVisible"
-          >
-            <PaintBrushIcon class="size-6 text-slate-500" />
-          </Button>
+          />
 
           <Tooltip v-if="colorPickerVisible">
             <template #header>Выбрать цвет</template>
@@ -131,10 +173,6 @@ async function createGame() {
             </div>
           </Tooltip>
         </div>
-
-        <Button @click="createGame()">
-          <ArrowPathIcon class="size-6 text-slate-500" />
-        </Button>
       </div>
 
       <!-- Игровая сетка -->
