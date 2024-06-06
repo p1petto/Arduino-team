@@ -7,7 +7,6 @@ import {
   ArrowPathIcon,
   PaintBrushIcon,
   UserIcon,
-  CheckCircleIcon,
   LinkIcon,
 } from "@heroicons/vue/24/outline";
 import { ref } from "vue";
@@ -32,24 +31,20 @@ const selectColor = (idx: number) => {
 const colorPickerVisible = ref(false);
 const authPanelVisible = ref(false);
 const gamesModalVisible = ref(false);
-const username = ref("");
-const token = ref("");
-
-(async function () {
-  const tokenCached = localStorage.getItem("token");
-
-  if (tokenCached) {
-    console.log(`Using token from data: ${tokenCached}`);
-    token.value = tokenCached;
-    return;
-  }
-})();
+const username = ref(localStorage.getItem("username") ?? "");
+const token = ref(localStorage.getItem("token") ?? "");
 
 function getHeaders() {
   return {
     Authorization: `Bearer ${token.value}`,
     "Content-Type": "application/x-www-form-urlencoded",
   };
+}
+
+async function logout() {
+  token.value = "";
+  username.value = "";
+  localStorage.clear();
 }
 
 async function createUser() {
@@ -62,6 +57,7 @@ async function createUser() {
 
   const newToken = await resp.text();
   localStorage.setItem("token", newToken);
+  localStorage.setItem("username", username.value);
   token.value = newToken;
 
   console.log(`Token for user ${username.value} created: ${newToken}`);
@@ -143,11 +139,14 @@ async function connectGame(ID: string) {
         :icon="UserIcon"
       />
       <Tooltip v-if="authPanelVisible" class="right-4 top-12 left-auto">
-        <div class="flex flex-row gap-2">
-          <input type="text" v-model="username" />
-          <CheckCircleIcon v-if="token" class="size-6 m-auto text-green-500" />
+        <div v-if="token">
+          <div class="font-bold">{{ username }}</div>
+          <button @click="logout()">Выйти</button>
         </div>
-        <button @click="createUser()">Войти</button>
+        <div v-else class="flex flex-row gap-2">
+          <input type="text" v-model="username" />
+          <button @click="createUser()">Войти</button>
+        </div>
       </Tooltip>
     </Navbar>
 
