@@ -101,6 +101,7 @@ void serverLogic() {
           if (counter == 5) {
             inputString = "";
             counter = 0;
+            set_pixel(row[0], row[1], CRGB(row[2], row[3], row[4]));
             for (int i = 0; i < 5; ++i) {
               Serial.print(row[i]);
               row[i] = 0;
