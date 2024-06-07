@@ -1,5 +1,7 @@
 package engine
 
+import "errors"
+
 type Message struct {
 	Payload []byte
 }
@@ -7,3 +9,7 @@ type Message struct {
 type EngineOutput struct{}
 type EngineInput struct {
 }
+
+var (
+	ErrNotValidInput = errors.New("неправильный ввод от пользователя")
+)

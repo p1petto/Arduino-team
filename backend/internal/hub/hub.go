@@ -135,6 +135,10 @@ func (h *Hub) ListenClient(client *Client, room *Room) {
 			}
 			response, err := room.engine.Input(input)
 			if err != nil {
+				if errors.Is(err, engine.ErrNotValidInput) {
+					h.RaiseWSError(err.Error(), client)
+					continue
+				}
 				h.log.Error("Error getting engine responce", sl.Err(err))
 				continue
 			}

@@ -2,13 +2,11 @@ package engine
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"sync"
 )
 
-var (
-	ErrNotValidInput = errors.New("неправильный ввод от пользователя")
-)
+
 
 type StandartEngine struct {
 	mu         sync.RWMutex
@@ -43,13 +41,14 @@ func (e *StandartEngine) Input(input UserInput) ([][][3]uint8, error) {
 	// 	// return Message{}, fmt.Errorf("%+w", err)
 	// }
 
-	if !(input.Coords.Y >= 0 && input.Coords.Y < e.dy) {
-		if !(input.Coords.X >= 0 && input.Coords.X < e.dx) {
-			return [][][3]uint8{}, ErrNotValidInput
-		}
+	if !(input.Coords.Y >= 0 && input.Coords.Y < e.dy) || !(input.Coords.X >= 0 && input.Coords.X < e.dx) {
+		return [][][3]uint8{}, ErrNotValidInput
 	}
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	fmt.Println("okey..")
+	fmt.Println(input.Coords.Y < e.dy)
+	fmt.Println(input.Coords.X < e.dx)
 	e.GameMatrix[input.Coords.Y][input.Coords.X] = input.RGB
 	// data, err := json.Marshal(e.GameMatrix)
 	return copySlice(e.GameMatrix), nil
