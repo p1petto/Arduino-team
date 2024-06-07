@@ -1,9 +1,9 @@
 #include "wifi.h"
 
 #define LED_PIN D5
-#define LED_NUM 288
-#define COL 24
-#define ROW 12
+#define LED_NUM 256
+#define COL 16
+#define ROW 16
 
 #include "FastLED.h"
 CRGB leds[LED_NUM];
@@ -11,7 +11,8 @@ CRGB leds[LED_NUM];
 WiFiManager wifiManager;
 
 
-bool is_correct_boundaries(int x, int y) {
+
+bool is_correct_boundaries(int y, int x) {
   if (x < 0 || x >= COL || y < 0 || y >= ROW)
     return false;
   return true;
@@ -24,7 +25,7 @@ bool is_correct_color(CRGB color) {
 }
 
 // Лента зигзаг, если x нечетный, то счёт идет в обратную сторону
-int get_index(int x, int y) {
+int get_index(int y, int x) {
   int index = 0;
 
   for (int col = 0; col < x; col++) {
@@ -58,6 +59,7 @@ void setup() {
 
   FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, LED_NUM);
   FastLED.setBrightness(50);
+  FastLED.setMaxPowerInVoltsAndMilliamps(5, 1010);
 
   // Очистка ленты вручную
   for (int i = 0; i < LED_NUM; i++) {
@@ -99,6 +101,7 @@ void serverLogic() {
           if (counter == 5) {
             inputString = "";
             counter = 0;
+            set_pixel(row[0], row[1], CRGB(row[2], row[3], row[4]));
             for (int i = 0; i < 5; ++i) {
               Serial.print(row[i]);
               row[i] = 0;
