@@ -31,7 +31,7 @@ func NewServer() *Server {
 		},
 	}
 	log := slog.New(
-		slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}),
+		slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
 	)
 	mux := chi.NewRouter()
 	storage := sqlite.NewStorage()

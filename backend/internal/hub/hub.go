@@ -73,7 +73,7 @@ func (h *Hub) Cast(message CastMessage) {
 }
 func (h *Hub) handleRegister(client *Client, room *Room) {
 	room.clients = append(room.clients, client)
-	h.log.Debug("new user registered", "struct", fmt.Sprintf("%+v", room.clients))
+	h.log.Debug("new user registered", "op", "handleRegister", "struct", fmt.Sprintf("%+v", room.clients))
 	client.listen()
 }
 func (h *Hub) handleUnregister(client *Client, room *Room) {
@@ -123,7 +123,7 @@ func (h *Hub) ListenClient(client *Client, room *Room) {
 			h.log.Error("Error getting payload type", sl.Err(err))
 			continue
 		}
-		fmt.Printf("%+v \n", payload)
+		h.log.Debug("get payload", "struct", payload)
 		switch payloadType {
 		case "Input":
 			var input engine.UserInput
@@ -132,18 +132,19 @@ func (h *Hub) ListenClient(client *Client, room *Room) {
 				h.log.Error("Error decode UserInput", sl.Err(err))
 				continue
 			}
-			fmt.Printf("%+v", input)
-
 			response, err := room.engine.Input(input)
 			if err != nil {
 				h.log.Error("Error getting engine responce", sl.Err(err))
 				continue
 			}
 			go func() {
-				room.esp_chan <- fmt.Sprintf("%d|%d|%d|%d|%d|", input.Coords.X, input.Coords.Y, input.RGB[0], input.RGB[1], input.RGB[2])
+				if room.Status == "Connected" {
+					room.esp_chan <- fmt.Sprintf("%d|%d|%d|%d|%d|", input.Coords.X, input.Coords.Y, input.RGB[0], input.RGB[1], input.RGB[2])
+				} else {
+					h.RaiseWSError("ESP server is down", client)
+				}
 			}()
-			fmt.Printf("%+v", response)
-			data, err := json.Marshal(response)
+			data, err := json.Marshal(map[string]interface{}{"type": "Output", "message": response})
 			if err != nil {
 				h.log.Error("Error marshaling in ListenClient", sl.Err(err))
 				continue
@@ -153,6 +154,15 @@ func (h *Hub) ListenClient(client *Client, room *Room) {
 
 	}
 
+}
+
+func (h *Hub) RaiseWSError(message string, client *Client) {
+	data, err := json.Marshal(map[string]interface{}{"type": "Error", "message": message})
+	if err != nil {
+		h.log.Error("Failed to error raise", sl.Err(err))
+		return
+	}
+	client.write(data)
 }
 
 func NewHub(storage *sqlite.Storage, log *slog.Logger) *Hub {
