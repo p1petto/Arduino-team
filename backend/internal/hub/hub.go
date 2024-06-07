@@ -77,6 +77,7 @@ func (h *Hub) handleRegister(client *Client, room *Room) {
 	client.listen()
 }
 func (h *Hub) handleUnregister(client *Client, room *Room) {
+	h.log.Debug("unregister user", "name", client.Login)
 	for i, c := range room.clients {
 		if c == client {
 			room.clients = append(room.clients[:i], room.clients[i+1:]...)
