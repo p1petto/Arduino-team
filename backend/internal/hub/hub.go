@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"github.com/mitchellh/mapstructure"
 )
 
 var (
@@ -111,25 +112,45 @@ func (h *Hub) ListenClient(client *Client, room *Room) {
 			return
 		}
 
-		var input engine.UserInput
+		var payload map[string]interface{}
 		// fmt.Printf("InputUser: %s", string(payload))
-		err = json.Unmarshal(msg, &input)
+		err = json.Unmarshal(msg, &payload)
 		if err != nil {
 			fmt.Printf("%+v", err)
 		}
-		// room.engine.Input(CastMessage{Client: client, room: room, payload: msg})
-		response, err := room.engine.Input(input)
-		if err != nil {
-			h.log.Error("Error getting engine responce", sl.Err(err))
+		payloadType, ok := payload["type"]
+		if !ok {
+			h.log.Error("Error getting payload type", sl.Err(err))
+			continue
+		}
+		fmt.Printf("%+v \n", payload)
+		switch payloadType {
+		case "Input":
+			var input engine.UserInput
+			err := mapstructure.Decode(payload, &input)
+			if err != nil {
+				h.log.Error("Error decode UserInput", sl.Err(err))
+				continue
+			}
+			fmt.Printf("%+v", input)
+
+			response, err := room.engine.Input(input)
+			if err != nil {
+				h.log.Error("Error getting engine responce", sl.Err(err))
+				continue
+			}
+			go func() {
+				room.esp_chan <- fmt.Sprintf("%d|%d|%d|%d|%d|", input.Coords.X, input.Coords.Y, input.RGB[0], input.RGB[1], input.RGB[2])
+			}()
+			fmt.Printf("%+v", response)
+			data, err := json.Marshal(response)
+			if err != nil {
+				h.log.Error("Error marshaling in ListenClient", sl.Err(err))
+				continue
+			}
+			h.Broadcast(Message{payload: data, room: room})
 		}
 
-		room.esp_chan <- fmt.Sprintf("%d|%d|%d|%d|%d|", input.Coords.X, input.Coords.Y, input.RGB[0], input.RGB[1], input.RGB[2])
-
-		data, err := json.Marshal(response)
-		if err != nil {
-			h.log.Error("Error marshaling in ListenClient", sl.Err(err))
-		}
-		h.Broadcast(Message{payload: data, room: room})
 	}
 
 }
