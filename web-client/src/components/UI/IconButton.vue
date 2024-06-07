@@ -2,6 +2,7 @@
 defineOptions({
   inheritAttrs: false,
 });
+defineProps(["icon"]);
 </script>
 <template>
   <div class="flex flex-col">
@@ -9,7 +10,7 @@ defineOptions({
       class="flex justify-center align-middle transition rounded p-2 m-auto hover:bg-slate-100"
       v-bind="$attrs"
     >
-      <slot />
+      <component :is="icon" class="size-6 text-slate-500" />
     </div>
   </div>
 </template>

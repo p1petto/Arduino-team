@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { Cell, type ICell } from "@/components/Game/Cell/index";
-import { Button, Navbar, Tooltip } from "@/components/UI/index";
+import { IconButton, Navbar, Tooltip, Modal } from "@/components/UI/index";
+import { get, post } from "@/api/core/index";
 
 import {
   ArrowPathIcon,
   PaintBrushIcon,
   UserIcon,
+  LinkIcon,
 } from "@heroicons/vue/24/outline";
 import { ref } from "vue";
 
@@ -13,13 +15,9 @@ const cells = ref<ICell[]>([]);
 const pallete = ["red", "blue", "green", "white"];
 const currentColor = ref(0);
 
-for (let i = 0; i < 24 * 12; i++) {
+for (let i = 0; i < 16 * 16; i++) {
   cells.value.push({});
 }
-
-const initGame = () => {
-  cells.value.forEach((c) => (c.color = "white"));
-};
 
 const colorizeCell = (idx: number) => {
   cells.value[idx].color = pallete[currentColor.value];
@@ -27,33 +25,142 @@ const colorizeCell = (idx: number) => {
 
 const selectColor = (idx: number) => {
   currentColor.value = idx;
-  colorPickerPanelVisible.value = false;
+  colorPickerVisible.value = false;
 };
 
-const colorPickerPanelVisible = ref(false);
+const colorPickerVisible = ref(false);
+const authPanelVisible = ref(false);
+const gamesModalVisible = ref(false);
+const username = ref(localStorage.getItem("username") ?? "");
+const token = ref(localStorage.getItem("token") ?? "");
+
+function getHeaders() {
+  return {
+    Authorization: `Bearer ${token.value}`,
+    "Content-Type": "application/x-www-form-urlencoded",
+  };
+}
+
+async function logout() {
+  token.value = "";
+  username.value = "";
+  localStorage.clear();
+}
+
+async function createUser() {
+  const resp = await post(`/login/${username.value}`);
+
+  if (resp.status !== 201) {
+    console.error("Failed to login with user");
+    return;
+  }
+
+  const newToken = await resp.text();
+  localStorage.setItem("token", newToken);
+  localStorage.setItem("username", username.value);
+  token.value = newToken;
+
+  console.log(`Token for user ${username.value} created: ${newToken}`);
+}
+
+const currentGames = ref({});
+
+async function updateGames() {
+  const resp = await fetch("http://localhost:1090/rooms", {
+    headers: getHeaders(),
+  });
+  currentGames.value = Object.values(await resp.json());
+}
+
+updateGames();
+
+async function createGame() {
+  const resp = await fetch("http://localhost:1090/rooms", {
+    method: "POST",
+    headers: getHeaders(),
+    body: new URLSearchParams({
+      name: "new-room",
+      IP: "127.0.0.1",
+    }),
+  });
+  console.log(resp);
+}
+
+async function connectGame(ID: string) {
+  const _socket = new WebSocket(`ws://localhost:1090/ws/${ID}`);
+  console.log(ID);
+}
 </script>
 
 <template>
+  <Modal v-if="gamesModalVisible">
+    <h3 class="font-bold text-center">Подключиться к игре</h3>
+
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Имя</th>
+          <th>IPv4</th>
+          <th>Статус</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="{ ID, name, IP, status } of currentGames">
+          <td>{{ ID }}</td>
+          <td>{{ name }}</td>
+          <td>{{ IP }}</td>
+          <td>{{ status }}</td>
+          <td>
+            <button @click="connectGame(ID)">Подключиться</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="flex flex-row gap-2">
+      <button @click="createGame()">Создать</button>
+      <IconButton @click="updateGames()" :icon="ArrowPathIcon" />
+    </div>
+  </Modal>
+
   <div class="flex flex-col h-screen w-screen bg-[#fafafa]">
     <Navbar class="flex flex-row justify-between">
-      <div class="m-auto font-bold">Текущая игра</div>
-      <Button>
-        <UserIcon class="size-6 text-slate-500" />
-      </Button>
+      <div class="m-auto font-bold flex gap-2">
+        <div class="m-auto">Текущая игра</div>
+        <IconButton
+          @click="gamesModalVisible = !gamesModalVisible"
+          :icon="LinkIcon"
+        />
+      </div>
+      <IconButton
+        @click="authPanelVisible = !authPanelVisible"
+        :icon="UserIcon"
+      />
+      <Tooltip v-if="authPanelVisible" class="right-4 top-12 left-auto">
+        <div v-if="token">
+          <div class="font-bold">{{ username }}</div>
+          <button @click="logout()">Выйти</button>
+        </div>
+        <div v-else class="flex flex-row gap-2">
+          <input type="text" v-model="username" />
+          <button @click="createUser()">Войти</button>
+        </div>
+      </Tooltip>
     </Navbar>
 
     <div class="flex flex-grow">
       <!-- Панель с инструментами -->
       <div class="flex flex-col justify-between p-2 bg-white shadow">
         <div>
-          <Button
+          <IconButton
             :style="{ borderBottom: `3px solid ${pallete[currentColor]}` }"
-            @click="colorPickerPanelVisible = !colorPickerPanelVisible"
-          >
-            <PaintBrushIcon class="size-6 text-slate-500" />
-          </Button>
+            :icon="PaintBrushIcon"
+            @click="colorPickerVisible = !colorPickerVisible"
+          />
 
-          <Tooltip v-if="colorPickerPanelVisible">
+          <Tooltip v-if="colorPickerVisible">
             <template #header>Выбрать цвет</template>
             <div class="grid grid-cols-4">
               <div
@@ -65,14 +172,10 @@ const colorPickerPanelVisible = ref(false);
             </div>
           </Tooltip>
         </div>
-
-        <Button @click="initGame()">
-          <ArrowPathIcon class="size-6 text-slate-500" />
-        </Button>
       </div>
 
       <!-- Игровая сетка -->
-      <div class="grid grid-rows-12 grid-cols-24 grid-flow-col h-fit m-auto">
+      <div class="grid grid-cols-[repeat(16,_minmax(0,_1fr))] m-auto">
         <Cell
           :color="color"
           :key="idx"
