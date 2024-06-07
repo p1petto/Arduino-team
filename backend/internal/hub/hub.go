@@ -135,6 +135,10 @@ func (h *Hub) ListenClient(client *Client, room *Room) {
 			}
 			response, err := room.engine.Input(input)
 			if err != nil {
+				if errors.Is(err, engine.ErrNotValidInput) {
+					h.RaiseWSError(err.Error(), client)
+					continue
+				}
 				h.log.Error("Error getting engine responce", sl.Err(err))
 				continue
 			}
@@ -189,7 +193,7 @@ func (h *Hub) CreateRoom(name string, esp_ip string) (*Room, error) {
 
 		return room, fmt.Errorf("%s: %w", op, err)
 	}
-	standartEngn := engine.NewStandartEngine(24, 12)
+	standartEngn := engine.NewStandartEngine(16, 16)
 	room = &Room{ID: id, Name: name, Ip: esp_ip, Status: "Pending", engine: standartEngn, esp_chan: make(chan string)}
 	go room.Run()
 	// room.engine.Run()
