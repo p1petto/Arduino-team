@@ -1,0 +1,18 @@
+services:
+  backend:
+    container_name: paint-battle-be
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "1090:1090"
+    volumes:
+      - "./backend/database:/build/database"
+
+  web:
+    container_name: paint-battle-web
+    build:
+      context: ./web-client
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
