@@ -161,15 +161,15 @@ async function connectGame(ID: string) {
         const y = 15 - Math.floor(idx / 16);
         const x = idx % 16;
 
-        if (comp(elem, [255, 0, 0])) cells.value[y*15 + x].color = "red";
-        if (comp(elem, [0, 255, 0])) cells.value[y*15 + x].color = "green";
-        if (comp(elem, [0, 0, 255])) cells.value[y*15 + x].color = "blue";
-        if (comp(elem, [150, 75, 0])) cells.value[y*15 + x].color = "brown";
-        if (comp(elem, [0, 0, 0])) cells.value[y*15 + x].color = "black";
-        if (comp(elem, [255, 255, 0])) cells.value[y*15 + x].color = "yellow";
-        if (comp(elem, [255, 165, 0])) cells.value[y*15 + x].color = "orange";
-        if (comp(elem, [34, 139, 34])) cells.value[y*15 + x].color = "forestgreen";
-        if (comp(elem, [255, 255, 255])) cells.value[y*15 + x].color = "white";
+        if (comp(elem, [255, 0, 0])) cells.value[y*16 + x].color = "red";
+        if (comp(elem, [0, 255, 0])) cells.value[y*16 + x].color = "green";
+        if (comp(elem, [0, 0, 255])) cells.value[y*16 + x].color = "blue";
+        if (comp(elem, [150, 75, 0])) cells.value[y*16 + x].color = "brown";
+        if (comp(elem, [0, 0, 0])) cells.value[y*16 + x].color = "black";
+        if (comp(elem, [255, 255, 0])) cells.value[y*16 + x].color = "yellow";
+        if (comp(elem, [255, 165, 0])) cells.value[y*16 + x].color = "orange";
+        if (comp(elem, [34, 139, 34])) cells.value[y*16 + x].color = "forestgreen";
+        if (comp(elem, [255, 255, 255])) cells.value[y*16 + x].color = "white";
       });
     }
   };
