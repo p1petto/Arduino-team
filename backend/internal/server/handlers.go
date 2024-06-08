@@ -116,11 +116,20 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	client, ok := r.Context().Value("user").(*hub.Client)
-	if !ok {
-		s.log.Error("Fail to type assertion client", "op", op)
+	reqToken := r.Header.Get("Sec-WebSocket-Protocol")
+	if reqToken == "" {
+		http.Error(w, "Incorrect token", http.StatusBadRequest)
 		return
 	}
+	client, err := s.CheckToken(reqToken)
+	if err != nil {
+		s.log.Error(op+"bad token", sl.Err(err))
+		http.Error(w, "Bad Token", http.StatusUnauthorized)
+		return
+	}
+	s.log.Debug("new user connected", "op", op, "login", client.Login)
+	w.Header().Set("Sec-Websocket-Protocol", reqToken)
+	s.upgrader.Subprotocols = []string{reqToken}
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		s.log.Error("Failed to upgrade connection", sl.Err(err))
