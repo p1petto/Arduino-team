@@ -26,12 +26,13 @@ func NewServer() *Server {
 	upgrader := websocket.Upgrader{
 		ReadBufferSize:  1024,
 		WriteBufferSize: 1024,
+		Subprotocols:    []string{"token"},
 		CheckOrigin: func(r *http.Request) bool {
 			return true
 		},
 	}
 	log := slog.New(
-		slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}),
+		slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelDebug}),
 	)
 	mux := chi.NewRouter()
 	storage := sqlite.NewStorage()

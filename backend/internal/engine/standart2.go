@@ -2,13 +2,11 @@ package engine
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"sync"
 )
 
-var (
-	ErrNotValidInput = errors.New("неправильный ввод от пользователя")
-)
+
 
 type StandartEngine struct {
 	mu         sync.RWMutex
@@ -26,8 +24,8 @@ func NewStandartEngine(dx int, dy int) *StandartEngine {
 }
 
 type UserInput struct {
-	Coords
-	RGB [3]uint8 `json:"color"`
+	Coords `mapstructure:",squash"`
+	RGB    [3]uint8 `json:"color" mapstructure:"color"`
 }
 type Coords struct {
 	X int
@@ -43,16 +41,17 @@ func (e *StandartEngine) Input(input UserInput) ([][][3]uint8, error) {
 	// 	// return Message{}, fmt.Errorf("%+w", err)
 	// }
 
-	if !(input.Coords.Y >= 0 && input.Coords.Y < e.dy) {
-		if !(input.Coords.X >= 0 && input.Coords.X < e.dx) {
-			return [][][3]uint8{}, ErrNotValidInput
-		}
+	if !(input.Coords.Y >= 0 && input.Coords.Y < e.dy) || !(input.Coords.X >= 0 && input.Coords.X < e.dx) {
+		return [][][3]uint8{}, ErrNotValidInput
 	}
 	e.mu.Lock()
 	defer e.mu.Unlock()
+	fmt.Println("okey..")
+	fmt.Println(input.Coords.Y < e.dy)
+	fmt.Println(input.Coords.X < e.dx)
 	e.GameMatrix[input.Coords.Y][input.Coords.X] = input.RGB
 	// data, err := json.Marshal(e.GameMatrix)
-	return e.GameMatrix, nil
+	return copySlice(e.GameMatrix), nil
 }
 
 func (e *StandartEngine) CurStateMessage() (Message, error) {
@@ -61,4 +60,19 @@ func (e *StandartEngine) CurStateMessage() (Message, error) {
 	data, err := json.Marshal(e.GameMatrix)
 
 	return Message{Payload: data}, err
+}
+
+func copySlice(original [][][3]uint8) [][][3]uint8 {
+	// Создаем новый слайс с такой же длиной, как у оригинального
+	newSlice := make([][][3]uint8, len(original))
+
+	// Копируем каждый элемент оригинального слайса в новый слайс
+	for i, innerSlice := range original {
+		// Создаем новый внутренний слайс с такой же длиной, как у оригинального
+		newInnerSlice := make([][3]uint8, len(innerSlice))
+		copy(newInnerSlice, innerSlice)
+		newSlice[i] = newInnerSlice
+	}
+
+	return newSlice
 }

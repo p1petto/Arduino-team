@@ -12,6 +12,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
+	"github.com/mitchellh/mapstructure"
 )
 
 var (
@@ -72,10 +73,11 @@ func (h *Hub) Cast(message CastMessage) {
 }
 func (h *Hub) handleRegister(client *Client, room *Room) {
 	room.clients = append(room.clients, client)
-	h.log.Debug("new user registered", "struct", fmt.Sprintf("%+v", room.clients))
+	h.log.Debug("new user registered", "op", "handleRegister", "struct", fmt.Sprintf("%+v", room.clients))
 	client.listen()
 }
 func (h *Hub) handleUnregister(client *Client, room *Room) {
+	h.log.Debug("unregister user", "name", client.Login)
 	for i, c := range room.clients {
 		if c == client {
 			room.clients = append(room.clients[:i], room.clients[i+1:]...)
@@ -111,27 +113,61 @@ func (h *Hub) ListenClient(client *Client, room *Room) {
 			return
 		}
 
-		var input engine.UserInput
+		var payload map[string]interface{}
 		// fmt.Printf("InputUser: %s", string(payload))
-		err = json.Unmarshal(msg, &input)
+		err = json.Unmarshal(msg, &payload)
 		if err != nil {
 			fmt.Printf("%+v", err)
 		}
-		// room.engine.Input(CastMessage{Client: client, room: room, payload: msg})
-		response, err := room.engine.Input(input)
-		if err != nil {
-			h.log.Error("Error getting engine responce", sl.Err(err))
+		payloadType, ok := payload["type"]
+		if !ok {
+			h.log.Error("Error getting payload type", sl.Err(err))
+			continue
+		}
+		h.log.Debug("get payload", "struct", payload)
+		switch payloadType {
+		case "Input":
+			var input engine.UserInput
+			err := mapstructure.Decode(payload, &input)
+			if err != nil {
+				h.log.Error("Error decode UserInput", sl.Err(err))
+				continue
+			}
+			response, err := room.engine.Input(input)
+			if err != nil {
+				if errors.Is(err, engine.ErrNotValidInput) {
+					h.RaiseWSError(err.Error(), client)
+					continue
+				}
+				h.log.Error("Error getting engine responce", sl.Err(err))
+				continue
+			}
+			go func() {
+				if room.Status == "Connected" {
+					room.esp_chan <- fmt.Sprintf("%d|%d|%d|%d|%d|", input.Coords.X, input.Coords.Y, input.RGB[0], input.RGB[1], input.RGB[2])
+				} else {
+					h.RaiseWSError("ESP server is down", client)
+				}
+			}()
+			data, err := json.Marshal(map[string]interface{}{"type": "Output", "message": response})
+			if err != nil {
+				h.log.Error("Error marshaling in ListenClient", sl.Err(err))
+				continue
+			}
+			h.Broadcast(Message{payload: data, room: room})
 		}
 
-		room.esp_chan <- fmt.Sprintf("%d|%d|%d|%d|%d|", input.Coords.X, input.Coords.Y, input.RGB[0], input.RGB[1], input.RGB[2])
-
-		data, err := json.Marshal(response)
-		if err != nil {
-			h.log.Error("Error marshaling in ListenClient", sl.Err(err))
-		}
-		h.Broadcast(Message{payload: data, room: room})
 	}
 
+}
+
+func (h *Hub) RaiseWSError(message string, client *Client) {
+	data, err := json.Marshal(map[string]interface{}{"type": "Error", "message": message})
+	if err != nil {
+		h.log.Error("Failed to error raise", sl.Err(err))
+		return
+	}
+	client.write(data)
 }
 
 func NewHub(storage *sqlite.Storage, log *slog.Logger) *Hub {
@@ -157,7 +193,7 @@ func (h *Hub) CreateRoom(name string, esp_ip string) (*Room, error) {
 
 		return room, fmt.Errorf("%s: %w", op, err)
 	}
-	standartEngn := engine.NewStandartEngine(24, 12)
+	standartEngn := engine.NewStandartEngine(16, 16)
 	room = &Room{ID: id, Name: name, Ip: esp_ip, Status: "Pending", engine: standartEngn, esp_chan: make(chan string)}
 	go room.Run()
 	// room.engine.Run()
