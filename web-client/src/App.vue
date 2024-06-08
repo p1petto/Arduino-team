@@ -116,7 +116,7 @@ async function createGame() {
     headers: client.headers(),
     body: new URLSearchParams({
       name: "new-room",
-      IP: "127.0.0.1",
+      IP: "172.16.1.126",
     }),
   });
 

@@ -44,8 +44,12 @@ int get_index(int y, int x) {
 // Установка пикселя по координатам и цвету
 void set_pixel(int x, int y, CRGB color) {
   if (is_correct_boundaries(x, y) && is_correct_color(color)) {
+
     int index = get_index(x, y);
+    
     leds[index] = color;
+    Serial.print("Индекс ");
+    Serial.println(index);
     FastLED.show();
   } else {
     Serial.println("Incorrect coordinates or color");
@@ -56,6 +60,8 @@ void set_pixel(int x, int y, CRGB color) {
 void setup() {
   Serial.begin(9600);
   Serial.println("Starting...");
+
+  delay(3000);
 
   FastLED.addLeds<WS2812, LED_PIN, GRB>(leds, LED_NUM);
   FastLED.setBrightness(50);
@@ -117,7 +123,7 @@ void serverLogic() {
         // Serial.print("char: ");
         // Serial.println(c);
       }
-      delay(10);
+      //delay(10);
     }
 
     client.stop();
@@ -131,30 +137,30 @@ void loop() {
   // set_pixel(1, 5, CRGB::Red);
   serverLogic();
 
-  if (Serial.available() > 0) {
-    Serial.println("_______________________");
-    int x = Serial.parseInt();
-    int y = Serial.parseInt();
-    int r = Serial.parseInt();
-    int g = Serial.parseInt();
-    int b = Serial.parseInt();
+  // if (Serial.available() > 0) {
+  //   Serial.println("_______________________");
+  //   int x = Serial.parseInt();
+  //   int y = Serial.parseInt();
+  //   int r = Serial.parseInt();
+  //   int g = Serial.parseInt();
+  //   int b = Serial.parseInt();
 
-    while (Serial.available() > 0) {
-      Serial.read();
-    }
+  //   while (Serial.available() > 0) {
+  //     Serial.read();
+  //   }
 
-    Serial.print(x);
-    Serial.print(" ");
-    Serial.print(y);
-    Serial.print(" RGB ");
-    Serial.print(r);
-    Serial.print(" ");
-    Serial.print(g);
-    Serial.print(" ");
-    Serial.println(b);
+  //   Serial.print(x);
+  //   Serial.print(" ");
+  //   Serial.print(y);
+  //   Serial.print(" RGB ");
+  //   Serial.print(r);
+  //   Serial.print(" ");
+  //   Serial.print(g);
+  //   Serial.print(" ");
+  //   Serial.println(b);
 
-    CRGB color = CRGB(r, g, b);
+  //   CRGB color = CRGB(r, g, b);
 
-    set_pixel(x, y, color);
-  }
+  //   set_pixel(x, y, color);
+  // }
 }
