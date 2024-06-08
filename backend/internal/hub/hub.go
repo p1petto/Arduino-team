@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log/slog"
 	"sync"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -126,7 +127,7 @@ func (h *Hub) CreateRoom(name string, esp_ip string) (*Room, error) {
 		return room, fmt.Errorf("%s: %w", op, err)
 	}
 	standartEngn := engine.NewStandartEngine(16, 16)
-	room = &Room{ID: id, Name: name, Ip: esp_ip, Status: "Pending", engine: standartEngn, esp_chan: make(chan string)}
+	room = &Room{ID: id, Name: name, Ip: esp_ip, Status: "Pending", engine: standartEngn, esp_chan: make(chan string), TickerDuration: time.Minute}
 	go room.Run()
 	// room.engine.Run()
 

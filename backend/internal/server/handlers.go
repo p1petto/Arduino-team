@@ -128,6 +128,7 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client.SetConnection(conn)
+	client.StartTicker(room.TickerDuration)
 	s.hub.Register(client, room)
 
 	s.hub.ListenClient(client, room)

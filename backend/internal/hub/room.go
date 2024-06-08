@@ -4,6 +4,7 @@ import (
 	"arduinoteam/internal/engine"
 	"fmt"
 	"net"
+	"time"
 )
 
 type Engine interface {
@@ -13,13 +14,14 @@ type Engine interface {
 }
 
 type Room struct {
-	ID       string    `json:"ID"`
-	Name     string    `json:"name"`
-	clients  []*Client `json:"-"`
-	engine   Engine    `json:"-"`
-	Ip       string    `json:"IP"`
-	Status   string    `json:"status"`
-	esp_chan chan string
+	ID             string    `json:"ID"`
+	Name           string    `json:"name"`
+	clients        []*Client `json:"-"`
+	engine         Engine    `json:"-"`
+	Ip             string    `json:"IP"`
+	Status         string    `json:"status"`
+	esp_chan       chan string
+	TickerDuration time.Duration
 }
 
 func (r *Room) Run() {
