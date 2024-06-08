@@ -14,7 +14,7 @@ import {
 import { onMounted, onUnmounted, ref } from "vue";
 
 const cells = ref<ICell[]>([]);
-const pallete = ["red", "blue", "green", "white", "brown"];
+const pallete = ["red", "blue", "green", "white", "brown", "orange", "yellow", "forestgreen", "black"];
 const currentColor = ref(0);
 
 for (let i = 0; i < 16 * 16; i++) {
@@ -28,7 +28,11 @@ const colorizeCell = (idx: number) => {
     green: [0, 255, 0],
     blue: [0, 0, 255],
     white: [255, 255, 255],
-    brown: [150, 75, 0]
+    brown: [150, 75, 0],
+    yellow: [255, 255, 0],
+    orange: [255, 165, 0],
+    forestgreen: [34, 139, 34],
+    black: [0,0,0],
   };
 
   const color = pallete[currentColor.value];
@@ -46,7 +50,7 @@ const colorizeCell = (idx: number) => {
       type: "Input",
       color: color2rgb[color],
       X: idx % 16,
-      Y: Math.floor(idx / 16),
+      Y: 15 - Math.floor(idx / 16),
     })
   );
 
@@ -151,27 +155,21 @@ async function connectGame(ID: string) {
 
     if (type === "Output") {
       const colorCodes = (message as number[][][]).flat();
+      const comp = (a: number[], b: number[]) => JSON.stringify(a) === JSON.stringify(b);
 
       colorCodes.forEach((elem, idx) => {
-        switch (elem) {
-          case [255, 0, 0]:
-            cells.value[idx].color = "red";
-            break;
-          case [0, 255, 0]:
-            cells.value[idx].color = "green";
-            break;
-          case [0, 0, 255]:
-            cells.value[idx].color = "blue";
-            break;
+        const y = 15 - Math.floor(idx / 16);
+        const x = idx % 16;
 
-          case [150, 75, 0]:
-            cells.value[idx].color = "brown";
-            break;
-
-          default:
-            cells.value[idx].color = "black";
-            break;
-        }
+        if (comp(elem, [255, 0, 0])) cells.value[y*15 + x].color = "red";
+        if (comp(elem, [0, 255, 0])) cells.value[y*15 + x].color = "green";
+        if (comp(elem, [0, 0, 255])) cells.value[y*15 + x].color = "blue";
+        if (comp(elem, [150, 75, 0])) cells.value[y*15 + x].color = "brown";
+        if (comp(elem, [0, 0, 0])) cells.value[y*15 + x].color = "black";
+        if (comp(elem, [255, 255, 0])) cells.value[y*15 + x].color = "yellow";
+        if (comp(elem, [255, 165, 0])) cells.value[y*15 + x].color = "orange";
+        if (comp(elem, [34, 139, 34])) cells.value[y*15 + x].color = "forestgreen";
+        if (comp(elem, [255, 255, 255])) cells.value[y*15 + x].color = "white";
       });
     }
   };
