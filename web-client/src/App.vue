@@ -9,23 +9,26 @@ import {
   PaintBrushIcon,
   UserIcon,
   ExclamationCircleIcon,
+  InformationCircleIcon,
 } from "@heroicons/vue/24/outline";
 import { onMounted, onUnmounted, ref } from "vue";
 
 const cells = ref<ICell[]>([]);
-const pallete = ["red", "blue", "green", "white"];
+const pallete = ["red", "blue", "green", "white", "brown"];
 const currentColor = ref(0);
 
 for (let i = 0; i < 16 * 16; i++) {
   cells.value.push({});
 }
+type ToastStatus = "error" | "info" | "ok";
 
 const colorizeCell = (idx: number) => {
   const color2rgb: Record<string, number[]> = {
     red: [255, 0, 0],
     green: [0, 255, 0],
-    blue: [0, 255, 0],
+    blue: [0, 0, 255],
     white: [255, 255, 255],
+    brown: [150, 75, 0]
   };
 
   const color = pallete[currentColor.value];
@@ -46,7 +49,8 @@ const colorizeCell = (idx: number) => {
       Y: Math.floor(idx / 16),
     })
   );
-  cells.value[idx].color = color;
+
+  // cells.value[idx].color = color;
 };
 
 const currentGameID = ref("-");
@@ -64,7 +68,7 @@ const token = ref(localStorage.getItem("token") ?? "");
 const client = new Client("http://localhost:1090/", token.value);
 
 async function logout() {
-  toast("Вы вышли из учетной записи", "ok");
+  toast("Вы вышли из учетной записи", "info");
   token.value = "";
   username.value = "";
   localStorage.clear();
@@ -89,7 +93,7 @@ async function createUser() {
   localStorage.setItem("username", username.value);
   client.token = token.value;
 
-  toast(`Вы вошли под пользователем ${username.value}`, "ok");
+  toast(`Вы вошли под пользователем ${username.value}`, "info");
   console.log(`Token for user ${username.value} created: ${token.value}`);
 }
 
@@ -123,7 +127,7 @@ async function createGame() {
   return toast("Новая игра успешно создана!", "ok");
 }
 
-function toast(message: string, type: "error" | "ok") {
+function toast(message: string, type: ToastStatus) {
   toasts.value.push({ message, type });
 }
 
@@ -143,6 +147,30 @@ async function connectGame(ID: string) {
     if (type === "Error") {
       return toast(message, "error");
     }
+    if (type === "Output") {
+      const colorCodes = (message as number[][][]).flat();
+
+      colorCodes.forEach((elem, idx) => {
+        switch (elem) {
+          case [255, 0, 0]:
+            cells.value[idx].color = "red";
+            break;
+          case [0, 255, 0]:
+            cells.value[idx].color = "green";
+            break;
+          case [0, 0, 255]:
+            cells.value[idx].color = "blue";
+            break;
+
+          case [150, 75, 0]:
+            cells.value[idx].color = "brown";
+
+          default:
+            cells.value[idx].color = "black";
+            break;
+        }
+      });
+    }
   };
 }
 
@@ -158,7 +186,7 @@ onUnmounted(() => {
   if (timer.value) clearInterval(timer.value);
 });
 
-const toasts = ref<{ message: string; type: "error" | "ok" }[]>([]);
+const toasts = ref<{ message: string; type: ToastStatus }[]>([]);
 </script>
 
 <template>
@@ -256,10 +284,18 @@ const toasts = ref<{ message: string; type: "error" | "ok" }[]>([]);
       <div
         class="absolute flex flex-col gap-4 right-4 bottom-4 rounded-lg shadow-lg bg-white z-10"
       >
-        <div v-for="(toast, idx) in toasts" :key="idx" class="p-4 flex flex-row gap-2">
+        <div
+          v-for="(toast, idx) in toasts"
+          :key="idx"
+          class="p-4 flex flex-row gap-2"
+        >
           <ExclamationCircleIcon
             v-if="toast.type === 'error'"
             class="size-6 text-red-500"
+          />
+          <InformationCircleIcon
+            v-if="toast.type === 'info'"
+            class="size-6 text-blue-500"
           />
           {{ toast.message }}
         </div>
