@@ -1,13 +1,13 @@
 <script setup lang="ts">
+import { Client } from "@/api/core/client";
 import { Cell, type ICell } from "@/components/Game/Cell/index";
-import { IconButton, Navbar, Tooltip, Modal } from "@/components/UI/index";
-import { get, post } from "@/api/core/index";
+import { IconButton, Modal, Navbar, Tooltip } from "@/components/UI/index";
 
 import {
   ArrowPathIcon,
+  LinkIcon,
   PaintBrushIcon,
   UserIcon,
-  LinkIcon,
 } from "@heroicons/vue/24/outline";
 import { ref } from "vue";
 
@@ -33,13 +33,7 @@ const authPanelVisible = ref(false);
 const gamesModalVisible = ref(false);
 const username = ref(localStorage.getItem("username") ?? "");
 const token = ref(localStorage.getItem("token") ?? "");
-
-function getHeaders() {
-  return {
-    Authorization: `Bearer ${token.value}`,
-    "Content-Type": "application/x-www-form-urlencoded",
-  };
-}
+const client = new Client("http://localhost:1090/", token.value);
 
 async function logout() {
   token.value = "";
@@ -48,36 +42,34 @@ async function logout() {
 }
 
 async function createUser() {
-  const resp = await post(`/login/${username.value}`);
+  const resp = await client.post(`/login/${username.value}`);
 
   if (resp.status !== 201) {
     console.error("Failed to login with user");
     return;
   }
 
-  const newToken = await resp.text();
-  localStorage.setItem("token", newToken);
+  token.value = await resp.text();
+  localStorage.setItem("token", token.value);
   localStorage.setItem("username", username.value);
-  token.value = newToken;
+  client.token = token.value;
 
-  console.log(`Token for user ${username.value} created: ${newToken}`);
+  console.log(`Token for user ${username.value} created: ${token.value}`);
 }
 
 const currentGames = ref({});
 
 async function updateGames() {
-  const resp = await fetch("http://localhost:1090/rooms", {
-    headers: getHeaders(),
-  });
+  const resp = await client.get("/rooms");
   currentGames.value = Object.values(await resp.json());
 }
 
 updateGames();
 
 async function createGame() {
-  const resp = await fetch("http://localhost:1090/rooms", {
+  const resp = await fetch(client.url("/rooms"), {
     method: "POST",
-    headers: getHeaders(),
+    headers: client.headers(),
     body: new URLSearchParams({
       name: "new-room",
       IP: "127.0.0.1",
@@ -87,7 +79,7 @@ async function createGame() {
 }
 
 async function connectGame(ID: string) {
-  const _socket = new WebSocket(`ws://localhost:1090/ws/${ID}`);
+  const _socket = new WebSocket(`ws://localhost:1090/ws/${ID}`, token.value);
   console.log(ID);
 }
 </script>
