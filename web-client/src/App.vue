@@ -144,9 +144,11 @@ async function connectGame(ID: string) {
 
   gameSocket.value.onmessage = (ev: MessageEvent) => {
     const { type, message } = JSON.parse(ev.data);
+
     if (type === "Error") {
-      return toast(message, "error");
+      toast(message, "error");
     }
+
     if (type === "Output") {
       const colorCodes = (message as number[][][]).flat();
 
