@@ -54,14 +54,6 @@ func getMessageType(msg []byte) (map[string]interface{}, string, error) {
 
 func (h *Hub) InputGameLogic(payload map[string]interface{}, room *Room, client *Client) {
 
-	if !client.isActive() {
-		h.log.Debug("User cannot input yet")
-		h.RaiseWSError("Вы ещё не можете отправить новый ввод", client)
-		return
-	}
-	client.setActive(false)
-	client.ticker.Start()
-
 	var input engine.UserInput
 	err := mapstructure.Decode(payload, &input)
 	if err != nil {
@@ -77,6 +69,13 @@ func (h *Hub) InputGameLogic(payload map[string]interface{}, room *Room, client 
 		h.log.Error("Error getting engine responce", sl.Err(err))
 		return
 	}
+	if !client.isActive() {
+		h.log.Debug("User cannot input yet")
+		h.RaiseWSError("Вы ещё не можете отправить новый ввод", client)
+		return
+	}
+	client.setActive(false)
+	client.ticker.Start()
 	go func() {
 		if room.Status == "Connected" {
 			for i := 0; i < 3; i++ {

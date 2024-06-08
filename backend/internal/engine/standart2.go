@@ -30,21 +30,12 @@ type Coords struct {
 }
 
 func (e *StandartEngine) Input(input UserInput) ([][][3]uint8, error) {
-	// var input UserInput
-	// // fmt.Printf("InputUser: %s", string(payload))
-	// err := json.Unmarshal(payload, &input)
-	// if err != nil {
-	// 	fmt.Printf("%+v", err)
-	// 	// return Message{}, fmt.Errorf("%+w", err)
-	// }
-
 	if !(input.Coords.Y >= 0 && input.Coords.Y < e.dy) || !(input.Coords.X >= 0 && input.Coords.X < e.dx) {
 		return [][][3]uint8{}, ErrNotValidInput
 	}
 	e.mu.Lock()
 	defer e.mu.Unlock()
 	e.GameMatrix[input.Coords.Y][input.Coords.X] = input.RGB
-	// data, err := json.Marshal(e.GameMatrix)
 	return copySlice(e.GameMatrix), nil
 }
 

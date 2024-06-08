@@ -86,12 +86,9 @@ func (h *Hub) handleUnregister(client *Client, room *Room) {
 }
 
 func (h *Hub) handleBroadcast(message Message) {
-	// encoded := message.Encode()
-
 	for _, client := range message.room.clients {
-		// if client != message.author {
+		fmt.Println(client.Login)
 		client.write(message.payload)
-		// }
 	}
 }
 func (h *Hub) handleCast(message CastMessage) {

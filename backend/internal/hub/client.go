@@ -70,5 +70,6 @@ func (c *Client) write(message []byte) {
 }
 
 func (c *Client) SetConnection(conn *websocket.Conn) {
+	c.messageChan = make(chan []byte)
 	c.conn = conn
 }
