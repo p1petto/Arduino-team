@@ -8,8 +8,9 @@ import {
   LinkIcon,
   PaintBrushIcon,
   UserIcon,
+  ExclamationCircleIcon,
 } from "@heroicons/vue/24/outline";
-import { ref } from "vue";
+import { onMounted, onUnmounted, ref } from "vue";
 
 const cells = ref<ICell[]>([]);
 const pallete = ["red", "blue", "green", "white"];
@@ -20,8 +21,35 @@ for (let i = 0; i < 16 * 16; i++) {
 }
 
 const colorizeCell = (idx: number) => {
-  cells.value[idx].color = pallete[currentColor.value];
+  const color2rgb: Record<string, number[]> = {
+    red: [255, 0, 0],
+    green: [0, 255, 0],
+    blue: [0, 255, 0],
+    white: [255, 255, 255],
+  };
+
+  const color = pallete[currentColor.value];
+
+  if (!gameSocket.value) {
+    return toast("Для начала нужно подключиться к игре!", "error");
+  }
+
+  if (gameSocket.value.readyState === WebSocket.CLOSED) {
+    return toast("Соединение с сервером потеряно", "error");
+  }
+
+  gameSocket.value!!.send(
+    JSON.stringify({
+      type: "Input",
+      color: color2rgb[color],
+      X: idx % 16,
+      Y: Math.floor(idx / 16),
+    })
+  );
+  cells.value[idx].color = color;
 };
+
+const currentGameID = ref("-");
 
 const selectColor = (idx: number) => {
   currentColor.value = idx;
@@ -36,6 +64,7 @@ const token = ref(localStorage.getItem("token") ?? "");
 const client = new Client("http://localhost:1090/", token.value);
 
 async function logout() {
+  toast("Вы вышли из учетной записи", "ok");
   token.value = "";
   username.value = "";
   localStorage.clear();
@@ -44,8 +73,14 @@ async function logout() {
 async function createUser() {
   const resp = await client.post(`/login/${username.value}`);
 
-  if (resp.status !== 201) {
+  if (resp.status === 409) {
+    toast(`Пользователь с именем ${username.value} уже существует!`, "error");
+    return;
+  }
+
+  if (!resp.ok) {
     console.error("Failed to login with user");
+    toast(`Не удалось войти под именем ${username.value}`, "error");
     return;
   }
 
@@ -54,14 +89,19 @@ async function createUser() {
   localStorage.setItem("username", username.value);
   client.token = token.value;
 
+  toast(`Вы вошли под пользователем ${username.value}`, "ok");
   console.log(`Token for user ${username.value} created: ${token.value}`);
 }
 
 const currentGames = ref({});
 
 async function updateGames() {
-  const resp = await client.get("/rooms");
-  currentGames.value = Object.values(await resp.json());
+  try {
+    const resp = await client.get("/rooms");
+    currentGames.value = Object.values(await resp.json());
+  } catch (e) {
+    return toast("Не удалось обновить информацию о доступных играх", "error");
+  }
 }
 
 updateGames();
@@ -75,13 +115,50 @@ async function createGame() {
       IP: "127.0.0.1",
     }),
   });
-  console.log(resp);
+
+  if (!resp.ok) {
+    return toast("не удалось создать игру!", "error");
+  }
+
+  return toast("Новая игра успешно создана!", "ok");
 }
 
-async function connectGame(ID: string) {
-  const _socket = new WebSocket(`ws://localhost:1090/ws/${ID}`, token.value);
-  console.log(ID);
+function toast(message: string, type: "error" | "ok") {
+  toasts.value.push({ message, type });
 }
+
+const gameSocket = ref<WebSocket | null>(null);
+
+async function connectGame(ID: string) {
+  gameSocket.value = new WebSocket(
+    `ws://localhost:1090/ws/${ID}?token=${token.value}`
+  );
+
+  currentGameID.value = ID;
+  toast(`вы успешно подключились к игре ${ID}`, "ok");
+  console.log(`Connected to room ${ID}`);
+
+  gameSocket.value.onmessage = (ev: MessageEvent) => {
+    const { type, message } = JSON.parse(ev.data);
+    if (type === "Error") {
+      return toast(message, "error");
+    }
+  };
+}
+
+const timer = ref<number | null>(null);
+
+onMounted(() => {
+  timer.value = setInterval(() => {
+    toasts.value.shift();
+  }, 3000);
+});
+
+onUnmounted(() => {
+  if (timer.value) clearInterval(timer.value);
+});
+
+const toasts = ref<{ message: string; type: "error" | "ok" }[]>([]);
 </script>
 
 <template>
@@ -120,7 +197,7 @@ async function connectGame(ID: string) {
   <div class="flex flex-col h-screen w-screen bg-[#fafafa]">
     <Navbar class="flex flex-row justify-between">
       <div class="m-auto font-bold flex gap-2">
-        <div class="m-auto">Текущая игра</div>
+        <div class="m-auto">{{ currentGameID }}</div>
         <IconButton
           @click="gamesModalVisible = !gamesModalVisible"
           :icon="LinkIcon"
@@ -174,6 +251,18 @@ async function connectGame(ID: string) {
           @click="colorizeCell(idx)"
           v-for="({ color }, idx) in cells"
         />
+      </div>
+
+      <div
+        class="absolute flex flex-col gap-4 right-4 bottom-4 rounded-lg shadow-lg bg-white z-10"
+      >
+        <div v-for="(toast, idx) in toasts" :key="idx" class="p-4 flex flex-row gap-2">
+          <ExclamationCircleIcon
+            v-if="toast.type === 'error'"
+            class="size-6 text-red-500"
+          />
+          {{ toast.message }}
+        </div>
       </div>
     </div>
   </div>
