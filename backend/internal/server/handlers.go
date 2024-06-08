@@ -116,7 +116,7 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	reqToken := r.Header.Get("Sec-WebSocket-Protocol")
+	reqToken := r.URL.Query().Get("token")
 	if reqToken == "" {
 		http.Error(w, "Incorrect token", http.StatusBadRequest)
 		return
@@ -137,6 +137,7 @@ func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client.SetConnection(conn)
+	client.StartTicker(room.TickerDuration)
 	s.hub.Register(client, room)
 
 	s.hub.ListenClient(client, room)

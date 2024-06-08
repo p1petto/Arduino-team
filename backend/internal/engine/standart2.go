@@ -2,11 +2,8 @@ package engine
 
 import (
 	"encoding/json"
-	"fmt"
 	"sync"
 )
-
-
 
 type StandartEngine struct {
 	mu         sync.RWMutex
@@ -46,9 +43,6 @@ func (e *StandartEngine) Input(input UserInput) ([][][3]uint8, error) {
 	}
 	e.mu.Lock()
 	defer e.mu.Unlock()
-	fmt.Println("okey..")
-	fmt.Println(input.Coords.Y < e.dy)
-	fmt.Println(input.Coords.X < e.dx)
 	e.GameMatrix[input.Coords.Y][input.Coords.X] = input.RGB
 	// data, err := json.Marshal(e.GameMatrix)
 	return copySlice(e.GameMatrix), nil

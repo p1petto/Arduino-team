@@ -8,6 +8,8 @@ require github.com/mattn/go-sqlite3 v1.14.22
 
 require github.com/mitchellh/mapstructure v1.5.0
 
+require github.com/tjgq/ticker v0.0.0-20140913211110-8b4870134629
+
 require (
 	github.com/go-chi/chi/v5 v5.0.12
 	github.com/google/uuid v1.6.0
