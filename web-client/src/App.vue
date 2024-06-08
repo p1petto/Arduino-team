@@ -164,6 +164,7 @@ async function connectGame(ID: string) {
 
           case [150, 75, 0]:
             cells.value[idx].color = "brown";
+            break;
 
           default:
             cells.value[idx].color = "black";
